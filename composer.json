@@ -52,7 +52,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "OData\\ServiceProvider"
+                "Aqqo\\OData\\ServiceProvider"
             ]
         }
     },
