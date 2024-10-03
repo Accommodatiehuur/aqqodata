@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
@@ -62,7 +63,7 @@ trait FilterTrait
                 if ($column === 'any'|| $column === 'all' || str_contains($column, '/')) {
                     $this->applyRelationshipCondition($builder, $column, $operator, $value);
                 } else {
-                    $builder->{$istatement}(trim($column), $this->mapOperator($operator), $value);
+                    $builder->{$istatement}(trim($column), OperatorUtils::mapOperator($operator), $value);
                 }
             }
         }
@@ -90,12 +91,12 @@ trait FilterTrait
                 if ($column === 'all') {
                     $builder->whereDoesntHave($relation, function (Builder $q) use ($value) {
                         [$column, $operator, $val] = explode(' ', $value);
-                        return $q->where(trim($column), $this->mapOperator($operator), $val);
+                        return $q->where(trim($column), OperatorUtils::mapOperator($operator), $val);
                     });
                 } else {
                     $builder->whereHas($relation, function (Builder $q) use ($value) {
                         [$column, $operator, $val] = explode(' ', $value);
-                        return $q->where(trim($column), $this->mapOperator($operator), $val);
+                        return $q->where(trim($column), OperatorUtils::mapOperator($operator), $val);
                     });
                 }
             }
@@ -105,7 +106,7 @@ trait FilterTrait
             $relatedField = $segments[1];
             // Regular relationship condition
             $builder->whereHas($relation, function ($q) use ($relatedField, $operator, $value) {
-                $q->where(trim($relatedField), $this->mapOperator($operator), $value);
+                $q->where(trim($relatedField), OperatorUtils::mapOperator($operator), $value);
             });
         }
     }

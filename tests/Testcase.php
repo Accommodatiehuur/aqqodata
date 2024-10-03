@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Tests;
 
+use Aqqo\OData\ServiceProvider;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,7 +10,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Aqqo\OData\ServiceProvider;
 
 class Testcase extends \Orchestra\Testbench\TestCase
 {
@@ -22,7 +22,7 @@ class Testcase extends \Orchestra\Testbench\TestCase
         $this->setUpDatabase($this->app);
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'TychoKamphuis\\Podata\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName) => 'Aqqo\\OData\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
     }
 
@@ -87,7 +87,7 @@ class Testcase extends \Orchestra\Testbench\TestCase
     protected function getPackageProviders($app)
     {
         return [
-            PodataServiceProvider::class,
+            ServiceProvider::class,
         ];
     }
 

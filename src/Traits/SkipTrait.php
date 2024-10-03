@@ -1,7 +1,7 @@
 <?php
 namespace Aqqo\OData\Traits;
 
-trait Skip
+trait SkipTrait
 {
     /**
      * @return $this
@@ -11,16 +11,11 @@ trait Skip
         $skip_query = $this->request->input('$skip', 0);
 
         // Set skip to 0 when; skip isset, but is lower than 0 or doesn't contain a numeric value
-        if (isset($skip_query)
-            && (
-                $skip_query < 0 || !is_numeric($skip_query)
-            )
-        ) {
+
+        if (!is_numeric($skip_query) || $skip_query < 0) {
             $skip_query = 0;
         }
-
         $this->applySkipToQuery($skip_query);
-
         return $this;
     }
 

@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Utils\OperatorUtils;
 use Illuminate\Database\Eloquent\Builder;
 
 trait ExpandTrait
@@ -47,7 +48,7 @@ trait ExpandTrait
                 case '$filter':
                     [$column, $operator, $value] = explode(' ', $value);
                     $this->subject->whereHas($relation, function (Builder $query) use ($column, $operator, $value) {
-                        $query->where($column, $this->mapOperator($operator), $value);
+                        $query->where($column, OperatorUtils::mapOperator($operator), $value);
                     });
                     break;
 

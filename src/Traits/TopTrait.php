@@ -18,23 +18,21 @@ trait TopTrait
 
         $top_query = $this->request->input('$top', $default_top);
 
-        // First validate if we have a numeric value, otherwise set default
-        if (is_numeric($top_query)) {
-            // If top is lower than min, set the min
-            if ($top_query < $min_top) {
-                $top_query = $min_top;
-            }
-
-            // If top is higher than max, set the max
-            if ($top_query > $max_top) {
-                $top_query = $max_top;
-            }
-        } else {
+        if (!is_numeric($top_query)) {
             $top_query = $default_top;
         }
 
-        $this->applyTopToQuery($top_query);
+// If top is lower than min, set the min
+        if ($top_query < $min_top) {
+            $top_query = $min_top;
+        }
 
+        // If top is higher than max, set the max
+        if ($top_query > $max_top) {
+            $top_query = $max_top;
+        }
+
+        $this->applyTopToQuery($top_query);
         return $this;
     }
 

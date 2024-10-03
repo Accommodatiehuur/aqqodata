@@ -32,7 +32,7 @@
     "autoload": {
         "psr-4": {
             "Aqqo\\OData\\": "src",
-            "Aqqo\\Odata\\Database\\Factories\\": "database/factories"
+            "Aqqo\\OData\\Database\\Factories\\": "database/factories"
         }
     },
     "autoload-dev": {
@@ -74,6 +74,7 @@
         "lint": [
             "@php vendor/bin/phpstan analyse --verbose --ansi"
         ],
-        "test": "vendor/bin/pest"
+        "test": "vendor/bin/pest",
+        "testcoverage": "XDEBUG_MODE=coverage ./vendor/bin/pest --coverage"
     }
 }

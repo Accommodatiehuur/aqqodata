@@ -2,7 +2,6 @@
 
 namespace Aqqo\OData;
 
-use Aqqo\OData\Traits\Operator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -12,14 +11,12 @@ use Aqqo\OData\Traits\FilterTrait;
 use Aqqo\OData\Traits\SkipTrait;
 use Aqqo\OData\Traits\TopTrait;
 
-
 class Query implements \ArrayAccess
 {
     use FilterTrait;
     use ExpandTrait;
     use SkipTrait;
     use TopTrait;
-    use OperatorTrait;
 
     public function __construct(
         protected EloquentBuilder|Relation $subject,

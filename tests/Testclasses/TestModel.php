@@ -10,12 +10,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
-use Workbench\Database\Factories\UserFactory;
 
 class TestModel extends Model
 {
     use HasFactory;
-
 
     protected $guarded = [];
 

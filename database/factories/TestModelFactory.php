@@ -1,4 +1,5 @@
 <?php
+namespace Aqqo\OData\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 
