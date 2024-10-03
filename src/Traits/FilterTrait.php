@@ -5,7 +5,6 @@ namespace Aqqo\OData\Traits;
 use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Log;
 
 trait FilterTrait
 {
@@ -25,9 +24,11 @@ trait FilterTrait
      */
     public function appendQuery(string $filter, Builder $builder, string $statement = 'where')
     {
-        if (str_contains($filter, '(') || str_contains($filter, ')')) {
-            $builder->where(function (Builder $q) use ($filter, $statement) {
-                foreach (StringUtils::splitODataExpression($filter) as $value) {
+        $expressions = StringUtils::splitODataExpression($filter);
+
+        if ((str_contains($filter, '(') || str_contains($filter, ')')) && !(count($expressions) == 1 && (str_starts_with($expressions[0], 'any(') || str_starts_with($expressions[0], 'all(')))) {
+            $builder->where(function (Builder $q) use ($filter, $statement, $expressions) {
+                foreach ($expressions as $value) {
                     if (in_array($value = trim($value), ['and', 'or'])) {
                         if ($value === 'or') {
                             $statement = 'orWhere';
@@ -57,12 +58,13 @@ trait FilterTrait
                     }
                     continue;
                 }
-                [$column, $operator, $value] = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $gf, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-                $value = trim($value, " '");
 
-                if ($column === 'any'|| $column === 'all' || str_contains($column, '/')) {
-                    $this->applyRelationshipCondition($builder, $column, $operator, $value);
+                if (str_starts_with($gf, 'all(') || str_starts_with($gf, 'any(')) {
+                    preg_match('/(any|all)\((.+)\)/', $gf, $matches);
+                    $this->applyRelationshipCondition($builder, $matches[1], '', $matches[2]);
                 } else {
+                    [$column, $operator, $value] = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $gf, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+                    $value = trim($value, " '");
                     $builder->{$istatement}(trim($column), OperatorUtils::mapOperator($operator), $value);
                 }
             }
@@ -90,13 +92,17 @@ trait FilterTrait
             if (method_exists($this->subject->getModel(), $relation)) {
                 if ($column === 'all') {
                     $builder->whereDoesntHave($relation, function (Builder $q) use ($value) {
-                        [$column, $operator, $val] = explode(' ', $value);
-                        return $q->where(trim($column), OperatorUtils::mapOperator($operator), $val);
+                        [$column, $operator, $value] = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $value, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+                        $value = trim($value, " '");
+
+                        return $q->where(trim($column), OperatorUtils::inverseOperator($operator), $value);
                     });
                 } else {
                     $builder->whereHas($relation, function (Builder $q) use ($value) {
-                        [$column, $operator, $val] = explode(' ', $value);
-                        return $q->where(trim($column), OperatorUtils::mapOperator($operator), $val);
+                        preg_match('/(\S+)\s+(\S+)\s+\'([^\']+)\'/', $value, $matches);
+                        if ($matches[1] && $matches[2] && $matches[3]) {
+                            return $q->where(trim($matches[1]), OperatorUtils::mapOperator($matches[2]), $matches[3]);
+                        }
                     });
                 }
             }
@@ -109,41 +115,5 @@ trait FilterTrait
                 $q->where(trim($relatedField), OperatorUtils::mapOperator($operator), $value);
             });
         }
-    }
-
-    private function captureGroupsWithOperators($input)
-    {
-        $result = [];
-
-        $paranthesis = '/\(([^()]*|(?R))*\)/';
-        preg_match($paranthesis, $input, $result);
-        if (!empty($result[0])) {
-            $group_1 = $result[0];
-            $remaining = str_replace($group_1, '', $input);
-
-            $operators = [' and ', ' or '];
-            foreach ($operators as $operator) {
-                if (str_starts_with($remaining, $operator)) {
-                    $remaining = str_replace($operator, '', $remaining);
-                    return [
-                        $this->ltrimandrtrim($group_1),
-                        $this->ltrimandrtrim($remaining),
-                        $this->ltrimandrtrim($operator),
-                    ];
-                }
-            }
-        }
-        return [
-            $input,
-            null,
-            null
-        ];
-    }
-
-    private function ltrimandrtrim(string $input)
-    {
-        $input = trim($input);
-        $input = ltrim($input, '(');
-        return rtrim($input, ')');
     }
 }

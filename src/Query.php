@@ -3,6 +3,7 @@
 namespace Aqqo\OData;
 
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -10,13 +11,15 @@ use Aqqo\OData\Traits\ExpandTrait;
 use Aqqo\OData\Traits\FilterTrait;
 use Aqqo\OData\Traits\SkipTrait;
 use Aqqo\OData\Traits\TopTrait;
+use Aqqo\OData\Traits\ResponseTrait;
 
-class Query implements \ArrayAccess
+class Query implements \ArrayAccess, \JsonSerializable
 {
     use FilterTrait;
     use ExpandTrait;
     use SkipTrait;
     use TopTrait;
+    use ResponseTrait;
 
     public function __construct(
         protected EloquentBuilder|Relation $subject,
@@ -112,8 +115,8 @@ class Query implements \ArrayAccess
         return $this->subject->get();
     }
 
-    public function getResponse($odata_output = true)
+    public function jsonSerialize(): mixed
     {
-        // TODO
+        return $this->getResponse();
     }
 }
