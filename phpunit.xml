@@ -18,5 +18,4 @@
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="3307"/>
     </php>
-
 </phpunit>

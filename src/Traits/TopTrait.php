@@ -9,9 +9,9 @@ trait TopTrait
     /**
      * Apply the $top query parameter constraint to the query.
      *
-     * @return $this
+     * @return void
      */
-    public function addTop(): static
+    public function addTop(): void
     {
         $min_top = Config::integer('odata.top.min', 1);
         $default_top = Config::integer('odata.top.default', 100);
@@ -22,30 +22,7 @@ trait TopTrait
             $top = $default_top;
         }
 
-        // If top is lower than min, set the min
-        if ($top < $min_top) {
-            $top = $min_top;
-        }
-
-        // If top is higher than max, set the max
-        if ($top > $max_top) {
-            $top = $max_top;
-        }
-
-        $this->applyTopToQuery($top);
-        return $this;
-    }
-
-    /**
-     * Apply the top constraint to the query.
-     *
-     * @param int $top The number of records to retrieve from the query.
-     *                 This value should always be an integer.
-     *
-     * @return void
-     */
-    private function applyTopToQuery(int $top): void
-    {
+        $top = max($min_top, min($top, $max_top));
         $this->subject->limit($top);
     }
 }

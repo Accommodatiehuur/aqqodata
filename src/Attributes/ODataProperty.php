@@ -9,14 +9,12 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 class ODataProperty
 {
-
-
     public function __construct(
         protected string  $name,
         protected ?string $description = null,
-        protected bool $searchable = false,
-        protected bool $filterable = true,
-        protected bool $orderable = true,
+        protected bool    $searchable = false,
+        protected bool    $filterable = true,
+        protected bool    $orderable = true,
     )
     {
 

@@ -136,7 +136,7 @@ trait FilterTrait
 
         return [
             trim($split[0] ?? ''),
-            $inverse_operator ? OperatorUtils::inverseOperator($split[1] ?? '') : OperatorUtils::mapOperator($split[1] ?? ''),
+            $inverse_operator ? OperatorUtils::mapOperator($split[1] ?? '', true) : OperatorUtils::mapOperator($split[1] ?? ''),
             trim($split[2] ?? '', " '")
         ];
     }

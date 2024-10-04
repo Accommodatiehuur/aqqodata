@@ -2,12 +2,10 @@
 
 namespace Aqqo\OData;
 
-use Aqqo\OData\Attributes\ODataProperty;
 use Aqqo\OData\Traits\AttributesTrait;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Aqqo\OData\Traits\ExpandTrait;
 use Aqqo\OData\Traits\FilterTrait;
@@ -27,7 +25,7 @@ class Query implements \JsonSerializable
     /**
      * @var \ReflectionClass<Model>
      */
-    protected \ReflectionClass $subjectReflectionClass;
+    protected \ReflectionClass $subjectModelReflectionClass;
 
     /**
      * @param EloquentBuilder<Model> $subject
@@ -36,56 +34,46 @@ class Query implements \JsonSerializable
      * @param bool $skip
      * @param bool $top
      * @param Request|null $request
+     * @throws \ReflectionException
      */
     public function __construct(
         protected EloquentBuilder $subject,
-        bool $filter = true,
-        bool $expand = true,
-        bool $skip = true,
-        bool $top = true,
-        protected ?Request $request = null
-    ) {
-        $this->request = $request
-            ? QueryBuilderRequest::fromRequest($request)
-            : app(QueryBuilderRequest::class);
+        bool                      $filter = true,
+        bool                      $expand = true,
+        bool                      $skip = true,
+        bool                      $top = true,
+        protected ?Request        $request = null
+    )
+    {
+        $this->request = !is_null($this->request) ? Request::createFrom($this->request) : app(Request::class);
 
-        $this->subjectReflectionClass = new \ReflectionClass($this->subject->getModel());
+        $this->subjectModelReflectionClass = new \ReflectionClass($this->subject->getModel());
         $this->handleAttributes();
 
-        if ($filter) {
-            // $this->getAnnotatedFilterableValues()
-            $this->addFilters();
-        }
+        if ($filter) $this->addFilters();
 
-        if ($expand) {
-            $this->addExpands();
-        }
+        if ($expand) $this->addExpands();
 
-        if ($skip) {
-            $this->addSkip();
-        }
+        if ($skip) $this->addSkip();
 
-        if ($top) {
-            $this->addTop();
-        }
+        if ($top) $this->addTop();
     }
 
     /**
      * @param EloquentBuilder<Model>|string $subject
      * @param Request|null $request
      * @return static
+     * @throws \ReflectionException
      */
-    public static function for(
-        EloquentBuilder|string $subject,
-        ?Request $request = null
-    ): static {
-        if (is_subclass_of($subject, Model::class)) {
-            $subject = $subject::query();
-        }
-
+    public static function for(EloquentBuilder|string $subject, ?Request $request = null): static
+    {
+        $subject = is_subclass_of($subject, Model::class) ? $subject::query() : $subject;
         return new static($subject, request: $request);
     }
 
+    /**
+     * @return $this
+     */
     public function clone(): static
     {
         return clone $this;

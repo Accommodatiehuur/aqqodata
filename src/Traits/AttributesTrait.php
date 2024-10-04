@@ -68,7 +68,7 @@ trait AttributesTrait
                 /** @var ODataRelationship $relationshipInstance */
                 $this->expandables[strtolower($reflectionClass->getShortName())]["{$relationshipInstance->getName()}"] = "{$parent}{$reflectionMethod->getName()}";
 
-                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), strtolower($reflectionClass->getShortName()).".");
+                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), strtolower($reflectionClass->getShortName()) . ".");
             }
         }
     }
@@ -79,7 +79,7 @@ trait AttributesTrait
      */
     protected function isPropertyFilterable(string $property): bool
     {
-        $className = $this->subjectReflectionClass->getShortName();
+        $className = $this->subjectModelReflectionClass->getShortName();
         if (empty($this->filterables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -98,7 +98,7 @@ trait AttributesTrait
      */
     protected function isPropertySearchable(string $property): bool
     {
-        $className = $this->subjectReflectionClass->getShortName();
+        $className = $this->subjectModelReflectionClass->getShortName();
         if (empty($this->searchables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -117,7 +117,7 @@ trait AttributesTrait
      */
     protected function isPropertyOrderable(string $property): bool
     {
-        $className = $this->subjectReflectionClass->getShortName();
+        $className = $this->subjectModelReflectionClass->getShortName();
         if (empty($this->orderables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -136,7 +136,7 @@ trait AttributesTrait
      */
     protected function isPropertyExpandable(string $property): false|string
     {
-        $className = $this->subjectReflectionClass->getShortName();
+        $className = $this->subjectModelReflectionClass->getShortName();
         if (empty($this->expandables)) {
             return $property;
         } else if (str_contains($property, '.')) {
