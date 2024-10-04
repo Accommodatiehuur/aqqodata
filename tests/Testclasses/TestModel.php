@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Tests\Testclasses;
 
+use Aqqo\OData\Attributes\ODataProperty;
 use Aqqo\OData\Attributes\ODataRelationship;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
+#[ODataProperty('name')]
+#[ODataProperty('test')]
+#[ODataProperty('start_datetime_utc')]
+#[ODataProperty('end_datetime_utc')]
 class TestModel extends Model
 {
     use HasFactory;

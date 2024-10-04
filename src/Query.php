@@ -24,6 +24,8 @@ class Query implements \JsonSerializable
     use ResponseTrait;
     use AttributesTrait;
 
+    protected $subjectReflectionClass;
+
     /**
      * @param EloquentBuilder<Model> $subject
      * @param bool $filter
@@ -44,6 +46,7 @@ class Query implements \JsonSerializable
             ? QueryBuilderRequest::fromRequest($request)
             : app(QueryBuilderRequest::class);
 
+        $this->subjectReflectionClass = new \ReflectionClass($this->subject->getModel());
         $this->handleAttributes();
 
         if ($filter) {

@@ -21,6 +21,7 @@ trait AttributesTrait
 
     /** @var array<int, string> */
     private $expandables = [];
+
     /**
      * @return void
      */
@@ -41,15 +42,15 @@ trait AttributesTrait
             $instance = $attribute->newInstance();
 
             if ($instance->getFilterable()) {
-                $this->filterables[] = "{$parent}{$instance->getName()}";
+                $this->filterables[strtolower($reflectionClass->getShortName())][] = "{$instance->getName()}";
             }
 
             if ($instance->getSearchable()) {
-                $this->searchables[] = "{$parent}{$instance->getName()}";
+                $this->searchables[strtolower($reflectionClass->getShortName())][] = "{$instance->getName()}";
             }
 
             if ($instance->getOrderable()) {
-                $this->orderables[] = "{$parent}{$instance->getName()}";
+                $this->orderables[strtolower($reflectionClass->getShortName())][] = "{$instance->getName()}";
             }
         }
 
@@ -58,9 +59,9 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables["{$parent}{$relationshipInstance->getName()}"] = "{$parent}{$reflectionMethod->getName()}";
+                $this->expandables[strtolower($reflectionClass->getShortName())]["{$relationshipInstance->getName()}"] = "{$parent}{$reflectionMethod->getName()}";
 
-                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), "{$reflectionClass->getShortName()}.");
+                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), strtolower($reflectionClass->getShortName()).".");
             }
         }
     }
@@ -71,7 +72,17 @@ trait AttributesTrait
      */
     protected function isPropertyFilterable(string $property): bool
     {
-        return empty($this->filterables) || in_array($property, $this->filterables);
+        $className = $this->subjectReflectionClass->getShortName();
+        if (empty($this->filterables)) {
+            return true;
+        } else if (str_contains($property, '.')) {
+            [$className, $property] = array_slice(explode('.', $property), -2, 2);
+        }
+        $className = strtolower($className);
+        return
+            !isset($this->filterables[$className])
+            ||
+            in_array($property, $this->filterables[$className] ?? []);
     }
 
     /**
@@ -80,7 +91,17 @@ trait AttributesTrait
      */
     protected function isPropertySearchable(string $property): bool
     {
-        return empty($this->searchables) || in_array($property, $this->searchables);
+        $className = $this->subjectReflectionClass->getShortName();
+        if (empty($this->searchables)) {
+            return true;
+        } else if (str_contains($property, '.')) {
+            [$className, $property] = array_slice(explode('.', $property), -2, 2);
+        }
+        $className = strtolower($className);
+        return
+            !isset($this->searchables[$className])
+            ||
+            in_array($property, $this->searchables[$className] ?? []);
     }
 
     /**
@@ -89,7 +110,17 @@ trait AttributesTrait
      */
     protected function isPropertyOrderable(string $property): bool
     {
-        return empty($this->orderables) || in_array($property, $this->orderables);
+        $className = $this->subjectReflectionClass->getShortName();
+        if (empty($this->orderables)) {
+            return true;
+        } else if (str_contains($property, '.')) {
+            [$className, $property] = array_slice(explode('.', $property), -2, 2);
+        }
+        $className = strtolower($className);
+        return
+            !isset($this->orderables[$className])
+            ||
+            in_array($property, $this->orderables[$className] ?? []);
     }
 
     /**
@@ -98,11 +129,13 @@ trait AttributesTrait
      */
     protected function isPropertyExpandable(string $property): false|string
     {
+        $className = $this->subjectReflectionClass->getShortName();
         if (empty($this->expandables)) {
             return $property;
-        } else if (array_key_exists($property, $this->expandables)) {
-            return $this->expandables[$property];
+        } else if (str_contains($property, '.')) {
+            [$className, $property] = array_slice(explode('.', $property), -2, 2);
         }
-        return false;
+        $className = strtolower($className);
+        return $this->expandables[$className][$property] ?? false;
     }
 }

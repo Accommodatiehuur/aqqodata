@@ -4,30 +4,36 @@ declare(strict_types=1);
 
 namespace Aqqo\OData\Attributes;
 
-abstract class ODataProperty
+use Attribute;
+
+#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+class ODataProperty
 {
 
 
     public function __construct(
-        protected ODataString  $name,
-        protected ?ODataString $description = null,
-        protected bool         $searchable = false,
-        protected bool         $filterable = true,
-        protected bool         $orderable = true,
-    ) {}
+        protected string  $name,
+        protected ?string $description = null,
+        protected bool $searchable = false,
+        protected bool $filterable = true,
+        protected bool $orderable = true,
+    )
+    {
+
+    }
 
     /**
-     * @return ODataString
+     * @return string
      */
-    public function getName(): ODataString
+    public function getName(): string
     {
         return $this->name;
     }
 
     /**
-     * @return ODataString|null
+     * @return string|null
      */
-    public function getDescription(): ?ODataString
+    public function getDescription(): ?string
     {
         return $this->description;
     }
@@ -55,7 +61,4 @@ abstract class ODataProperty
     {
         return $this->orderable;
     }
-
-    abstract public function getType(): string;
-
 }

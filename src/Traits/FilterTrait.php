@@ -71,7 +71,7 @@ trait FilterTrait
                         }
                     } else {
                         [$column, $operator, $value] = $this->splitInput($gf);
-                        if ($column && $operator && $value) {
+                        if ($column && $operator && $value && $this->isPropertyFilterable($column)) {
                             $builder->{$istatement}($column, $operator, $value);
                         }
 
@@ -99,16 +99,16 @@ trait FilterTrait
 
             if ($expandable = $this->isPropertyExpandable($relation)) {
                 if ($column === 'all') {
-                    $builder->whereDoesntHave($expandable, function (Builder $q) use ($value) {
+                    $builder->whereDoesntHave($expandable, function (Builder $q) use ($value, $expandable) {
                         [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
-                        if ($column && $operator && $val) {
+                        if ($column && $operator && $val && $this->isPropertyFilterable("{$expandable}.{$column}")) {
                             return $q->where($column, $operator, $val);
                         }
                     });
                 } else {
-                    $builder->whereHas($expandable, function (Builder $q) use ($value) {
+                    $builder->whereHas($expandable, function (Builder $q) use ($value, $expandable) {
                         [$column, $operator, $val] = $this->splitInput($value);
-                        if ($column && $operator && $val) {
+                        if ($column && $operator && $val && $this->isPropertyFilterable("{$expandable}.{$column}")) {
                             return $q->where($column, $operator, $val);
                         }
                     });
