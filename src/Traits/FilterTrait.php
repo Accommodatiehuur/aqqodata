@@ -5,29 +5,34 @@ namespace Aqqo\OData\Traits;
 use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use PhpParser\Node\Expr\AssignOp\Mod;
 
 trait FilterTrait
 {
-    public function addFilters()
+    /**
+     * @return void
+     */
+    public function addFilters(): void
     {
-        $filter_query = $this->request->input('$filter');
-        if (!empty($filter_query)) {
-            $this->appendQuery($filter_query, $this->subject);
+        $filter = $this->request?->input('$filter');
+        if (!empty($filter)) {
+            $this->appendQuery(strval($filter), $this->subject);
         }
     }
 
     /**
      * @param string $filter
-     * @param Builder $builder
+     * @param Builder<Model> $builder
      * @param string $statement
-     * @return Builder
+     * @return Builder<Model>
      */
-    public function appendQuery(string $filter, Builder $builder, string $statement = 'where')
+    public function appendQuery(string $filter, Builder $builder, string $statement = 'where'): Builder
     {
         $expressions = StringUtils::splitODataExpression($filter);
 
         if ((str_contains($filter, '(') || str_contains($filter, ')')) && !(count($expressions) == 1 && (str_starts_with($expressions[0], 'any(') || str_starts_with($expressions[0], 'all(')))) {
-            $builder->where(function (Builder $q) use ($filter, $statement, $expressions) {
+            $builder->where(function (Builder $q) use ($statement, $expressions) {
                 foreach ($expressions as $value) {
                     if (in_array($value = trim($value), ['and', 'or'])) {
                         if ($value === 'or') {
@@ -51,21 +56,27 @@ trait FilterTrait
             }
             $grouped_filters = preg_split('/(?<=\s)(and|or)(?=\s)/', $filter, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
             $istatement = 'where';
-            foreach ($grouped_filters as $gf) {
-                if (in_array($gf = trim($gf), ['and', 'or'])) {
-                    if ($gf === 'or') {
-                        $istatement = 'orWhere';
+            if ($grouped_filters) {
+                foreach ($grouped_filters as $gf) {
+                    if (in_array($gf = trim($gf), ['and', 'or'])) {
+                        if ($gf === 'or') {
+                            $istatement = 'orWhere';
+                        }
+                        continue;
                     }
-                    continue;
-                }
 
-                if (str_starts_with($gf, 'all(') || str_starts_with($gf, 'any(')) {
-                    preg_match('/(any|all)\((.+)\)/', $gf, $matches);
-                    $this->applyRelationshipCondition($builder, $matches[1], '', $matches[2]);
-                } else {
-                    [$column, $operator, $value] = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $gf, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-                    $value = trim($value, " '");
-                    $builder->{$istatement}(trim($column), OperatorUtils::mapOperator($operator), $value);
+                    if (str_starts_with($gf, 'all(') || str_starts_with($gf, 'any(')) {
+                        preg_match('/(any|all)\((.+)\)/', $gf, $matches);
+                        if (isset($matches[1]) && isset($matches[2])) {
+                            $this->applyRelationshipCondition($builder, $matches[1], '', $matches[2]);
+                        }
+                    } else {
+                        [$column, $operator, $value] = $this->splitInput($gf);
+                        if ($column && $operator && $value) {
+                            $builder->{$istatement}($column, $operator, $value);
+                        }
+
+                    }
                 }
             }
         }
@@ -75,15 +86,13 @@ trait FilterTrait
 
 
     /**
-     * Handle conditions on related models (e.g., Customer/Name or OrderItems/any).
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $column
-     * @param  string  $operator
-     * @param  mixed   $value
+     * @param Builder<Model> $builder
+     * @param string $column
+     * @param string $operator
+     * @param string $value
      * @return void
      */
-    protected function applyRelationshipCondition(Builder $builder, $column, $operator, $value)
+    protected function applyRelationshipCondition(Builder $builder, string $column, string $operator, string $value): void
     {
         if ($column === 'any' || $column === 'all') {
             $value = str_replace(['(', ')'],'', $value);
@@ -92,16 +101,16 @@ trait FilterTrait
             if (method_exists($this->subject->getModel(), $relation)) {
                 if ($column === 'all') {
                     $builder->whereDoesntHave($relation, function (Builder $q) use ($value) {
-                        [$column, $operator, $value] = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $value, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-                        $value = trim($value, " '");
-
-                        return $q->where(trim($column), OperatorUtils::inverseOperator($operator), $value);
+                        [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
+                        if ($column && $operator && $val) {
+                            return $q->where($column, $operator, $val);
+                        }
                     });
                 } else {
                     $builder->whereHas($relation, function (Builder $q) use ($value) {
-                        preg_match('/(\S+)\s+(\S+)\s+\'([^\']+)\'/', $value, $matches);
-                        if ($matches[1] && $matches[2] && $matches[3]) {
-                            return $q->where(trim($matches[1]), OperatorUtils::mapOperator($matches[2]), $matches[3]);
+                        [$column, $operator, $val] = $this->splitInput($value);
+                        if ($column && $operator && $val) {
+                            return $q->where($column, $operator, $val);
                         }
                     });
                 }
@@ -115,5 +124,21 @@ trait FilterTrait
                 $q->where(trim($relatedField), OperatorUtils::mapOperator($operator), $value);
             });
         }
+    }
+
+    /**
+     * @param string $input
+     * @param bool $inverse_operator
+     * @return array<int, string>
+     */
+    private function splitInput(string $input, bool $inverse_operator = false): array
+    {
+        $split = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $input, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        return [
+            trim($split[0] ?? ''),
+            $inverse_operator ? OperatorUtils::inverseOperator($split[1] ?? '') : OperatorUtils::mapOperator($split[1] ?? ''),
+            trim($split[2] ?? '', " '")
+        ];
     }
 }

@@ -6,7 +6,7 @@ class StringUtils
 {
     /**
      * @param string $expr
-     * @return array
+     * @return array<int, string>
      */
     public static function splitODataExpression(string $expr): array
     {
@@ -73,34 +73,6 @@ class StringUtils
         if ($current !== '') {
             $result[] = $current;
         }
-        return $result;
-    }
-
-    public static function getQueryParts(string $expr): array
-    {
-        // Use preg_split to explode the string based on ' or ' and ' and '
-        $conditions = preg_split('/\s+(and|or)\s+/i', $expr);
-
-// Use preg_match_all to find the operators
-        preg_match_all('/\s+(and|or)\s+/i', $expr, $operators);
-
-// Combine conditions and operators
-        $result = [];
-        $operatorIndex = 0;
-
-        foreach ($conditions as $index => $condition) {
-            $result[] = trim($condition); // Add the condition
-            if ($operatorIndex < count($operators[0])) {
-                $result[] = trim($operators[0][$operatorIndex]); // Add the operator
-                $operatorIndex++;
-            }
-        }
-
-// Remove the last operator added (if exists)
-        if (end($result) === 'and' || end($result) === 'or') {
-            array_pop($result);
-        }
-
         return $result;
     }
 }

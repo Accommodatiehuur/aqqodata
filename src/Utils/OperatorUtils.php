@@ -7,10 +7,10 @@ class OperatorUtils
     /**
      * Map OData operators to Laravel operators.
      *
-     * @param  string  $odataOperator
+     * @param string $odataOperator
      * @return string
      */
-    public static function mapOperator($odataOperator)
+    public static function mapOperator(string $odataOperator): string
     {
         $map = [
             'eq' => '=',
@@ -50,7 +50,11 @@ class OperatorUtils
         return $map[$odataOperator] ?? '=';
     }
 
-    public static function inverseOperator($odataOperator): string
+    /**
+     * @param string $odataOperator
+     * @return string
+     */
+    public static function inverseOperator(string $odataOperator): string
     {
         $inverseMap = [
             'eq' => '!=',          // Inverse of equality

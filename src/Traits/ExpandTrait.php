@@ -13,17 +13,21 @@ trait ExpandTrait
      */
     public function addExpands()
     {
-        $expand_query = $this->request->input('$expand');
+        if ($this->request) {
+            $expand_query = (string)($this->request->input('$expand'));
 
-        if (!empty($expand_query)) {
-            // Parse expand into individual relationships (e.g., 'Customer,OrderItems($expand=Product)')
-            foreach (explode(',', $expand_query) as $expand) {
-                // Handle expand with filter: e.g., objects($filter=name eq 10)
-                if (str_contains($expand, '(')) {
-                    preg_match('/([A-Za-z]+)\((.*)\)/', $expand, $matches);
-                    $this->handleExpandsDetails($expand, $matches[1]);
-                } else {
-                    $this->subject->with($expand);
+            if (!empty($expand_query)) {
+                // Parse expand into individual relationships (e.g., 'Customer,OrderItems($expand=Product)')
+                foreach (explode(',', $expand_query) as $expand) {
+                    // Handle expand with filter: e.g., objects($filter=name eq 10)
+                    if (str_contains($expand, '(')) {
+                        preg_match('/([A-Za-z]+)\((.*)\)/', $expand, $matches);
+                        if (isset($matches[1])) {
+                            $this->handleExpandsDetails($expand, $matches[1]);
+                        }
+                    } else {
+                        $this->subject->with($expand);
+                    }
                 }
             }
         }
@@ -39,26 +43,28 @@ trait ExpandTrait
     private function handleExpandsDetails(string $expand, string $relation)
     {
         preg_match('/([A-Za-z]+)\((.*)\)/', $expand, $matches);
-        $details = explode(';', $matches[2]);
+        if (isset($matches[2])) {
+            $details = explode(';', $matches[2]);
 
-        foreach ($details as $detail) {
-            [$key, $value] = explode('=', $detail);
+            foreach ($details as $detail) {
+                [$key, $value] = explode('=', $detail);
 
-            switch ($key) {
-                case '$filter':
-                    [$column, $operator, $value] = explode(' ', $value);
-                    $this->subject->whereHas($relation, function (Builder $query) use ($column, $operator, $value) {
-                        $query->where($column, OperatorUtils::mapOperator($operator), $value);
-                    });
-                    break;
+                switch ($key) {
+                    case '$filter':
+                        [$column, $operator, $value] = explode(' ', $value);
+                        $this->subject->whereHas($relation, function (Builder $query) use ($column, $operator, $value) {
+                            $query->where($column, OperatorUtils::mapOperator($operator), $value);
+                        });
+                        break;
 
-                case '$expand':
-                    if (str_contains($expand, '(')) {
-                        $this->handleExpandsDetails($value, "{$relation}.{$value}");
-                    } else {
-                        $this->subject->with("{$relation}.{$value}");
-                    }
-                    break;
+                    case '$expand':
+                        if (str_contains($expand, '(')) {
+                            $this->handleExpandsDetails($value, "{$relation}.{$value}");
+                        } else {
+                            $this->subject->with("{$relation}.{$value}");
+                        }
+                        break;
+                }
             }
         }
     }

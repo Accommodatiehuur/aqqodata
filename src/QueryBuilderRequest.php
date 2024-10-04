@@ -10,9 +10,4 @@ class QueryBuilderRequest extends Request
     {
         return static::createFrom($request, new static());
     }
-
-    protected function getRequestData(?string $key = null, $default = null)
-    {
-        return $this->input($key, $default);
-    }
 }

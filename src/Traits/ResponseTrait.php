@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Collection;
 
 trait ResponseTrait
 {
+    /**
+     * @return array<string, array<int, array<int, string>>|string>
+     */
     public function getResponse(): array
     {
         $query = clone $this->subject;

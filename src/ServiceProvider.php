@@ -14,13 +14,19 @@ class ServiceProvider extends PackageServiceProvider
             ->hasConfigFile('odata');
     }
 
-    public function registeringPackage()
+    /**
+     * @return void
+     */
+    public function registeringPackage(): void
     {
         $this->app->bind(QueryBuilderRequest::class, function ($app) {
             return QueryBuilderRequest::fromRequest($app['request']);
         });
     }
 
+    /**
+     * @return array<class-string>
+     */
     public function provides(): array
     {
         return [

@@ -1,6 +1,7 @@
 <?php
 
 namespace Aqqo\OData\Traits;
+
 use Illuminate\Support\Facades\Config;
 
 trait TopTrait
@@ -12,27 +13,26 @@ trait TopTrait
      */
     public function addTop(): static
     {
-        $min_top = Config::get('odata.top.min', '1');
-        $default_top = Config::get('odata.top.default', '100');
-        $max_top = Config::get('odata.top.max', '1000');
+        $min_top = Config::integer('odata.top.min', 1);
+        $default_top = Config::integer('odata.top.default', 100);
+        $max_top = Config::integer('odata.top.max', 1000);
 
-        $top_query = $this->request->input('$top', $default_top);
-
-        if (!is_numeric($top_query)) {
-            $top_query = $default_top;
+        $top = $this->request?->input('$top', $default_top) ?? $default_top;
+        if (!is_integer($top)) {
+            $top = $default_top;
         }
 
-// If top is lower than min, set the min
-        if ($top_query < $min_top) {
-            $top_query = $min_top;
+        // If top is lower than min, set the min
+        if ($top < $min_top) {
+            $top = $min_top;
         }
 
         // If top is higher than max, set the max
-        if ($top_query > $max_top) {
-            $top_query = $max_top;
+        if ($top > $max_top) {
+            $top = $max_top;
         }
 
-        $this->applyTopToQuery($top_query);
+        $this->applyTopToQuery($top);
         return $this;
     }
 
@@ -46,6 +46,6 @@ trait TopTrait
      */
     private function applyTopToQuery(int $top): void
     {
-        $this->subject->take($top);
+        $this->subject->limit($top);
     }
 }

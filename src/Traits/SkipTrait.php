@@ -8,11 +8,11 @@ trait SkipTrait
      */
     public function addSkip(): static
     {
-        $skip_query = $this->request->input('$skip', 0);
+        $skip_query = $this->request?->input('$skip', 0) ?? 0;
 
         // Set skip to 0 when; skip isset, but is lower than 0 or doesn't contain a numeric value
 
-        if (!is_numeric($skip_query) || $skip_query < 0) {
+        if (!is_integer($skip_query) || $skip_query < 0) {
             $skip_query = 0;
         }
         $this->applySkipToQuery($skip_query);

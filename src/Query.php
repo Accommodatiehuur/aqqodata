@@ -13,7 +13,7 @@ use Aqqo\OData\Traits\SkipTrait;
 use Aqqo\OData\Traits\TopTrait;
 use Aqqo\OData\Traits\ResponseTrait;
 
-class Query implements \ArrayAccess, \JsonSerializable
+class Query implements \JsonSerializable
 {
     use FilterTrait;
     use ExpandTrait;
@@ -21,8 +21,16 @@ class Query implements \ArrayAccess, \JsonSerializable
     use TopTrait;
     use ResponseTrait;
 
+    /**
+     * @param EloquentBuilder<Model> $subject
+     * @param bool $filter
+     * @param bool $expand
+     * @param bool $skip
+     * @param bool $top
+     * @param Request|null $request
+     */
     public function __construct(
-        protected EloquentBuilder|Relation $subject,
+        protected EloquentBuilder $subject,
         bool $filter = true,
         bool $expand = true,
         bool $skip = true,
@@ -51,8 +59,13 @@ class Query implements \ArrayAccess, \JsonSerializable
         }
     }
 
+    /**
+     * @param EloquentBuilder<Model>|string $subject
+     * @param Request|null $request
+     * @return static
+     */
     public static function for(
-        EloquentBuilder|Relation|string $subject,
+        EloquentBuilder|string $subject,
         ?Request $request = null
     ): static {
         if (is_subclass_of($subject, Model::class)) {
@@ -72,49 +85,44 @@ class Query implements \ArrayAccess, \JsonSerializable
         $this->subject = clone $this->subject;
     }
 
-    public function __get($name)
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function __get(string $name): mixed
     {
         return $this->subject->{$name};
     }
 
-    public function __set($name, $value)
+    /**
+     * @param string $name
+     * @param mixed $value
+     * @return void
+     */
+    public function __set(string $name, mixed $value)
     {
         $this->subject->{$name} = $value;
     }
 
-    public function offsetExists($offset): bool
-    {
-        return isset($this->subject[$offset]);
-    }
-
-    public function offsetGet($offset): bool
-    {
-        return $this->subject[$offset];
-    }
-
-    public function offsetSet($offset, $value): void
-    {
-        $this->subject[$offset] = $value;
-    }
-
-    public function offsetUnset($offset): void
-    {
-        unset($this->subject[$offset]);
-    }
-
+    /**
+     * @return string
+     */
     public function toSql(): string
     {
         return $this->subject->toRawSql();
     }
 
-    public function get()
+    /**
+     * @return Collection<int, Model>
+     */
+    public function get(): Collection
     {
-        if (property_exists($model = $this->subject->getModel(), 'resource')) {
-            // TODO
-        }
         return $this->subject->get();
     }
 
+    /**
+     * @return mixed
+     */
     public function jsonSerialize(): mixed
     {
         return $this->getResponse();
