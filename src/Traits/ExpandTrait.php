@@ -25,7 +25,7 @@ trait ExpandTrait
                         if (isset($matches[1])) {
                             $this->handleExpandsDetails($expand, $matches[1]);
                         }
-                    } else {
+                    } else if ($this->isPropertyExpandable($expand)) {
                         $this->subject->with($expand);
                     }
                 }
@@ -60,7 +60,7 @@ trait ExpandTrait
                     case '$expand':
                         if (str_contains($expand, '(')) {
                             $this->handleExpandsDetails($value, "{$relation}.{$value}");
-                        } else {
+                        } else if ($this->isPropertyExpandable("{$relation}.{$value}")) {
                             $this->subject->with("{$relation}.{$value}");
                         }
                         break;

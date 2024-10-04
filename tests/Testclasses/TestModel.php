@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Tests\Testclasses;
 
+use Aqqo\OData\Attributes\ODataRelationship;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ class TestModel extends Model
 
     protected $guarded = [];
 
+    #[ODataRelationship(name: 'relatedModels')]
     public function relatedModels(): HasMany
     {
         return $this->hasMany(RelatedModel::class);

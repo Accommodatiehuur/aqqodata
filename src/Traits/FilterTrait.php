@@ -6,7 +6,6 @@ use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use PhpParser\Node\Expr\AssignOp\Mod;
 
 trait FilterTrait
 {
@@ -98,7 +97,7 @@ trait FilterTrait
             $value = str_replace(['(', ')'],'', $value);
             [$relation, $value] = explode(',', $value);
 
-            if (method_exists($this->subject->getModel(), $relation)) {
+            if (method_exists($this->subject->getModel(), $relation) && $this->isPropertyExpandable($relation)) {
                 if ($column === 'all') {
                     $builder->whereDoesntHave($relation, function (Builder $q) use ($value) {
                         [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
