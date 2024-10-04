@@ -24,7 +24,10 @@ class Query implements \JsonSerializable
     use ResponseTrait;
     use AttributesTrait;
 
-    protected $subjectReflectionClass;
+    /**
+     * @var \ReflectionClass<Model>
+     */
+    protected \ReflectionClass $subjectReflectionClass;
 
     /**
      * @param EloquentBuilder<Model> $subject
