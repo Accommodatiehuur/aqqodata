@@ -2,11 +2,13 @@
 
 namespace Aqqo\OData\Tests\Testclasses;
 
+use Aqqo\OData\Attributes\ODataProperty;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ODataProperty('name')]
 class RelatedModel extends Model
 {
     protected $guarded = [];

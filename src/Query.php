@@ -2,6 +2,8 @@
 
 namespace Aqqo\OData;
 
+use Aqqo\OData\Attributes\ODataProperty;
+use Aqqo\OData\Traits\AttributesTrait;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +22,12 @@ class Query implements \JsonSerializable
     use SkipTrait;
     use TopTrait;
     use ResponseTrait;
+    use AttributesTrait;
+
+    /**
+     * @var \ReflectionClass<Model>
+     */
+    protected \ReflectionClass $subjectReflectionClass;
 
     /**
      * @param EloquentBuilder<Model> $subject
@@ -40,6 +48,9 @@ class Query implements \JsonSerializable
         $this->request = $request
             ? QueryBuilderRequest::fromRequest($request)
             : app(QueryBuilderRequest::class);
+
+        $this->subjectReflectionClass = new \ReflectionClass($this->subject->getModel());
+        $this->handleAttributes();
 
         if ($filter) {
             // $this->getAnnotatedFilterableValues()
