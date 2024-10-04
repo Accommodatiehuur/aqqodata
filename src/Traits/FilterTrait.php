@@ -97,16 +97,16 @@ trait FilterTrait
             $value = str_replace(['(', ')'],'', $value);
             [$relation, $value] = explode(',', $value);
 
-            if (method_exists($this->subject->getModel(), $relation) && $this->isPropertyExpandable($relation)) {
+            if ($expandable = $this->isPropertyExpandable($relation)) {
                 if ($column === 'all') {
-                    $builder->whereDoesntHave($relation, function (Builder $q) use ($value) {
+                    $builder->whereDoesntHave($expandable, function (Builder $q) use ($value) {
                         [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
                         if ($column && $operator && $val) {
                             return $q->where($column, $operator, $val);
                         }
                     });
                 } else {
-                    $builder->whereHas($relation, function (Builder $q) use ($value) {
+                    $builder->whereHas($expandable, function (Builder $q) use ($value) {
                         [$column, $operator, $val] = $this->splitInput($value);
                         if ($column && $operator && $val) {
                             return $q->where($column, $operator, $val);

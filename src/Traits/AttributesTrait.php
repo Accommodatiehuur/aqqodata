@@ -29,9 +29,9 @@ trait AttributesTrait
         $this->handleModel($this->subject);
     }
 
-    private function handleModel(Builder $model, string $parent = ''): void
+    private function handleModel(Builder $builder, string $parent = ''): void
     {
-        $reflectionClass = new \ReflectionClass($model);
+        $reflectionClass = new \ReflectionClass($builder->getModel());
 
         foreach ($reflectionClass->getAttributes(
             ODataProperty::class,
@@ -58,10 +58,9 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables[] = "{$parent}{$relationshipInstance->getName()}";
+                $this->expandables["{$parent}{$relationshipInstance->getName()}"] = "{$parent}{$reflectionMethod->getName()}";
 
-                $parent .= "{$reflectionClass->getShortName()}.";
-                $this->handleModel($model->$reflectionMethod()->newModelInstance(), $parent);
+                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), "{$reflectionClass->getShortName()}.");
             }
         }
     }
@@ -95,10 +94,15 @@ trait AttributesTrait
 
     /**
      * @param string $property
-     * @return bool
+     * @return false|string
      */
-    protected function isPropertyExpandable(string $property): bool
+    protected function isPropertyExpandable(string $property): false|string
     {
-        return empty($this->expandables) || in_array($property, $this->expandables);
+        if (empty($this->expandables)) {
+            return $property;
+        } else if (array_key_exists($property, $this->expandables)) {
+            return $this->expandables[$property];
+        }
+        return false;
     }
 }

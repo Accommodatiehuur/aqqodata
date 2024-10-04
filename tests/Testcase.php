@@ -19,7 +19,7 @@ class Testcase extends \Orchestra\Testbench\TestCase
     {
         parent::setUp();
 
-        $this->setUpDatabase($this->app);
+//        $this->setUpDatabase($this->app);
 
         Factory::guessFactoryNamesUsing(
             fn (string $modelName) => 'Aqqo\\OData\\Database\\Factories\\'.class_basename($modelName).'Factory'

@@ -24,6 +24,7 @@ class TestModel extends Model
         return $this->hasMany(RelatedModel::class);
     }
 
+    #[ODataRelationship(name: 'related_model')]
     public function relatedModel(): BelongsTo
     {
         return $this->belongsTo(RelatedModel::class);
