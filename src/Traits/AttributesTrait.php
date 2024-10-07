@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 trait AttributesTrait
 {
@@ -66,9 +67,14 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)?->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables[strtolower($reflectionClass->getShortName())]["{$relationshipInstance->getName()}"] = "{$parent}{$reflectionMethod->getName()}";
+                $this->expandables[strtolower($reflectionClass->getShortName())][strtolower($relationshipInstance->getName())] = "{$parent}" . $reflectionMethod->getName();
 
-                $this->handleModel($builder->getModel()->{$reflectionMethod->getName()}()->getModel()->newQuery(), strtolower($reflectionClass->getShortName()) . ".");
+                $model = $builder->getModel()->{$reflectionMethod->getName()}()->getModel();
+                $reflection = new \ReflectionClass($model);
+
+                if (!array_key_exists(strtolower($reflection->getShortName()), $this->expandables)) {
+                    $this->handleModel($model->newQuery(), $reflectionMethod->getShortName() . ".");
+                }
             }
         }
     }
@@ -142,7 +148,6 @@ trait AttributesTrait
         } else if (str_contains($property, '.')) {
             [$className, $property] = array_slice(explode('.', $property), -2, 2);
         }
-        $className = strtolower($className);
-        return $this->expandables[$className][$property] ?? false;
+        return $this->expandables[strtolower(Str::singular($className))][strtolower($property)] ?? false;
     }
 }
