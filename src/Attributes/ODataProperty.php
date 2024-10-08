@@ -12,8 +12,9 @@ class ODataProperty
     public function __construct(
         protected string  $name,
         protected ?string $description = null,
-        protected bool    $searchable = false,
+        protected bool    $selectable = true,
         protected bool    $filterable = true,
+        protected bool    $searchable = false,
         protected bool    $orderable = true,
     )
     {
@@ -39,9 +40,9 @@ class ODataProperty
     /**
      * @return bool
      */
-    public function getSearchable(): bool
+    public function getSelectable(): bool
     {
-        return $this->searchable;
+        return $this->selectable;
     }
 
     /**
@@ -50,6 +51,14 @@ class ODataProperty
     public function getFilterable(): bool
     {
         return $this->filterable;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getSearchable(): bool
+    {
+        return $this->searchable;
     }
 
     /**

@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 trait AttributesTrait
 {
     /** @var array<string, array<int, string>> */
+    private $selectables = [];
+
+    /** @var array<string, array<int, string>> */
     private $filterables = [];
 
     /** @var array<string, array<int, string>> */
@@ -49,6 +52,10 @@ trait AttributesTrait
             /** @var ODataProperty $instance */
             $instance = $attribute->newInstance();
 
+            if ($instance->getSelectable()) {
+                $this->selectables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
+            }
+
             if ($instance->getFilterable()) {
                 $this->filterables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
             }
@@ -83,9 +90,28 @@ trait AttributesTrait
      * @param string $property
      * @return bool
      */
-    protected function isPropertyFilterable(string $property): bool
+    protected function isPropertySelectable(string $property, string|null $className = null): bool
     {
-        $className = $this->subjectModelReflectionClass->getShortName();
+        $className ??= $this->subjectModelReflectionClass->getShortName();
+        if (empty($this->selectables)) {
+            return true;
+        } else if (str_contains($property, '.')) {
+            [$className, $property] = array_slice(explode('.', $property), -2, 2);
+        }
+        $className = strtolower($className);
+        return
+            !isset($this->selectables[$className])
+            ||
+            in_array($property, $this->selectables[$className] ?? []);
+    }
+
+    /**
+     * @param string $property
+     * @return bool
+     */
+    protected function isPropertyFilterable(string $property, string|null $className = null): bool
+    {
+        $className ??= $this->subjectModelReflectionClass->getShortName();
         if (empty($this->filterables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -102,9 +128,9 @@ trait AttributesTrait
      * @param string $property
      * @return bool
      */
-    protected function isPropertySearchable(string $property): bool
+    protected function isPropertySearchable(string $property, string|null $className = null): bool
     {
-        $className = $this->subjectModelReflectionClass->getShortName();
+        $className ??= $this->subjectModelReflectionClass->getShortName();
         if (empty($this->searchables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -121,9 +147,9 @@ trait AttributesTrait
      * @param string $property
      * @return bool
      */
-    protected function isPropertyOrderable(string $property): bool
+    protected function isPropertyOrderable(string $property, string|null $className = null): bool
     {
-        $className = $this->subjectModelReflectionClass->getShortName();
+        $className ??= $this->subjectModelReflectionClass->getShortName();
         if (empty($this->orderables)) {
             return true;
         } else if (str_contains($property, '.')) {
@@ -138,11 +164,12 @@ trait AttributesTrait
 
     /**
      * @param string $property
+     * @param string|null $className
      * @return false|string
      */
-    protected function isPropertyExpandable(string $property): false|string
+    protected function isPropertyExpandable(string $property, string|null $className = null): false|string
     {
-        $className = $this->subjectModelReflectionClass->getShortName();
+        $className ??= $this->subjectModelReflectionClass->getShortName();
         if (empty($this->expandables)) {
             return $property;
         } else if (str_contains($property, '.')) {
