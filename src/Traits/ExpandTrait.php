@@ -54,34 +54,29 @@ trait ExpandTrait
             $model = $this->getModel($builder, $expandable);
 
             $builder->with($expandable, function (Builder|Relation $builder) use ($model, $relation, $details) {
-                $shortName = (new \ReflectionClass($model))->getShortName();
                 foreach (preg_split('/;(?![^(]*\))/', $details) as $detail) {
                     [$key, $value] = explode('=', $detail, 2);
                     switch ($key) {
                         case '$filter':
                             [$column, $operator, $value] = $this->splitInput($value);
-                            if ($this->isPropertyFilterable($column, $shortName)) {
-                                $builder->where($column, OperatorUtils::mapOperator($operator), $value);
-                            }
+                            $builder->where($column, OperatorUtils::mapOperator($operator), $value);
                             break;
 
                         case '$select':
-                            $selects = [];
-                            foreach (explode(',', $value) as &$select) {
-                                if ($this->isPropertySelectable($select, $shortName)) {
-                                    $select = "{$model->getTable()}.{$select}";
-                                }
-                            }
-
-                            if ($builder instanceof HasOneOrMany || $builder instanceof HasOneOrManyThrough) {
-                                $selects[] = "{$model->getTable()}.{$builder->getForeignKeyName()}";
-                            }
-
-                            if ($builder instanceof BelongsTo || $builder instanceof BelongsToMany) {
-                                // TODO
-                            }
-
-                            $builder->select($selects);
+//                            $selects = explode(',', $value);
+//                            foreach ($selects as &$select) {
+//                                $select = "{$model->getTable()}.{$select}";
+//                            }
+//
+//                            if ($builder instanceof HasOneOrMany || $builder instanceof HasOneOrManyThrough) {
+//                                $selects[] = "{$model->getTable()}.{$builder->getForeignKeyName()}";
+//                            }
+//
+//                            if ($builder instanceof BelongsTo || $builder instanceof BelongsToMany) {
+//                                // TODO
+//                            }
+//
+//                            $builder->select($selects);
                             break;
 
                         case '$expand':
@@ -92,7 +87,7 @@ trait ExpandTrait
                                 }
                             } else {
                                 $value = rtrim($value, ')');
-                                if ($expandable = $this->isPropertyExpandable($value, $shortName)) {
+                                if ($expandable = $this->isPropertyExpandable($value, (new \ReflectionClass($model))->getShortName())) {
                                     $builder->with($expandable);
                                 }
                             }

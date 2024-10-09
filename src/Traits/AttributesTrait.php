@@ -36,12 +36,11 @@ trait AttributesTrait
     }
 
     /**
-     * @param Builder<Model> $builder
-     * @param string $parent
+     * @param Builder $builder
      * @return void
      * @throws \ReflectionException
      */
-    private function handleModel(Builder $builder, string $parent = ''): void
+    private function handleModel(Builder $builder): void
     {
         $reflectionClass = new \ReflectionClass($builder->getModel());
 
@@ -74,13 +73,13 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)?->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables[strtolower($reflectionClass->getShortName())][strtolower($relationshipInstance->getName())] = "{$parent}" . $reflectionMethod->getName();
+                $this->expandables[strtolower($reflectionClass->getShortName())][strtolower($relationshipInstance->getName())] = $reflectionMethod->getName();
 
                 $model = $builder->getModel()->{$reflectionMethod->getName()}()->getModel();
                 $reflection = new \ReflectionClass($model);
 
                 if (!array_key_exists(strtolower($reflection->getShortName()), $this->expandables)) {
-                    $this->handleModel($model->newQuery(), $reflectionMethod->getShortName() . ".");
+                    $this->handleModel($model->newQuery());
                 }
             }
         }
@@ -88,25 +87,27 @@ trait AttributesTrait
 
     /**
      * @param string $property
+     * @param string|null $className
      * @return bool
      */
     protected function isPropertySelectable(string $property, string|null $className = null): bool
     {
         $className ??= $this->subjectModelReflectionClass->getShortName();
-        if (empty($this->selectables)) {
+        if (empty($this->filterables)) {
             return true;
         } else if (str_contains($property, '.')) {
             [$className, $property] = array_slice(explode('.', $property), -2, 2);
         }
         $className = strtolower($className);
         return
-            !isset($this->selectables[$className])
+            !isset($this->filterables[$className])
             ||
-            in_array($property, $this->selectables[$className] ?? []);
+            in_array($property, $this->filterables[$className] ?? []);
     }
 
     /**
      * @param string $property
+     * @param string|null $className
      * @return bool
      */
     protected function isPropertyFilterable(string $property, string|null $className = null): bool
@@ -126,6 +127,7 @@ trait AttributesTrait
 
     /**
      * @param string $property
+     * @param string|null $className
      * @return bool
      */
     protected function isPropertySearchable(string $property, string|null $className = null): bool
@@ -145,6 +147,7 @@ trait AttributesTrait
 
     /**
      * @param string $property
+     * @param string|null $className
      * @return bool
      */
     protected function isPropertyOrderable(string $property, string|null $className = null): bool
