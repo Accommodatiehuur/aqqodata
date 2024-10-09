@@ -61,20 +61,7 @@ trait ExpandTrait
                         case '$select':
                             if ($this->select) {
                                 $this->addSelectForExpand($parentBuilder, $expandable);
-                                $selects = explode(',', $value);
-                                foreach ($selects as &$select) {
-                                    $select = "{$model->getTable()}.{$select}";
-                                }
-
-                                if ($relationshipBuilder instanceof HasOneOrMany || $relationshipBuilder instanceof HasOneOrManyThrough) {
-                                    $selects[] = "{$model->getTable()}.{$relationshipBuilder->getForeignKeyName()}";
-                                }
-
-                                if ($relationshipBuilder instanceof BelongsTo || $relationshipBuilder instanceof BelongsToMany) {
-                                    // TODO
-                                }
-
-                                $relationshipBuilder->select($selects);
+                                $this->appendSelectQuery($value, $relationshipBuilder);
                             }
                             break;
 

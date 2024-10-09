@@ -19,14 +19,24 @@ trait SelectTrait
         $select = $this->request?->input('$select');
 
         if (!empty($select)) {
-            $selects = [];
-            foreach (explode(',', $select) as $item) {
-                if ($this->isPropertySelectable($item)) {
-                    $selects[] = $item;
-                }
-            }
-            $this->subject->select($selects);
+            $this->appendSelectQuery($select, $this->subject);
         }
+    }
+
+    /**
+     * @param string $select
+     * @param Builder|Relation $builder
+     * @return void
+     */
+    public function appendSelectQuery(string $select, Builder|Relation $builder)
+    {
+        $selects = [];
+        foreach (explode(',', $select) as $item) {
+            if ($this->isPropertySelectable($item, (new \ReflectionClass($builder))->getShortName())) {
+                $selects[] = $item;
+            }
+        }
+        $builder->select($selects);
     }
 
     /**
@@ -40,7 +50,7 @@ trait SelectTrait
             $relationshipBinding = $parent->getRelation($relation);
 
             if ($relationshipBinding instanceof HasOneOrMany || $relationshipBinding instanceof HasOneOrManyThrough) {
-                $parent->addSelect("{$parent->getModel()->getTable()}.{$relationshipBinding->getForeignKeyName()}");
+                $parent->addSelect("{$parent->getModel()->getTable()}.{$relationshipBinding->getLocalKeyName()}");
             }
 
             if ($relationshipBinding instanceof BelongsTo || $relationshipBinding instanceof BelongsToMany) {
