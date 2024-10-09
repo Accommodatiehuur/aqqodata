@@ -6,6 +6,7 @@ use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 trait FilterTrait
 {
@@ -16,21 +17,22 @@ trait FilterTrait
     {
         $filter = $this->request?->input('$filter');
         if (!empty($filter)) {
-            $this->appendQuery(strval($filter), $this->subject);
+            $this->appendFilterQuery(strval($filter), $this->subject);
         }
     }
 
     /**
      * @param string $filter
-     * @param Builder<Model> $builder
+     * @param Builder|Relation $builder
      * @param string $statement
-     * @return Builder<Model>
+     * @return void
      */
-    public function appendQuery(string $filter, Builder $builder, string $statement = 'where'): Builder
+    public function appendFilterQuery(string $filter, Builder|Relation $builder, string $statement = 'where'): void
     {
         $expressions = StringUtils::splitODataExpression($filter);
 
-        if ((str_contains($filter, '(') || str_contains($filter, ')')) && !(count($expressions) == 1 && (str_starts_with($expressions[0], 'any(') || str_starts_with($expressions[0], 'all(')))) {
+
+        if ((str_contains($filter, '(') || str_contains($filter, ')')) && count($expressions) > 1) {
             $builder->where(function (Builder $q) use ($statement, $expressions) {
                 foreach ($expressions as $value) {
                     if (in_array($value = trim($value), ['and', 'or'])) {
@@ -44,7 +46,8 @@ trait FilterTrait
                         if (str_starts_with($value, '(') && str_ends_with($value, ')')) {
                             $value = substr($value, 1, -1);
                         }
-                        return $this->appendQuery($value, $q, $statement);
+
+                        $this->appendFilterQuery($value, $q, $statement);
                     });
 
                 }
@@ -71,16 +74,13 @@ trait FilterTrait
                         }
                     } else {
                         [$column, $operator, $value] = $this->splitInput($gf);
-                        if ($column && $operator && $value && $this->isPropertyFilterable($column)) {
+                        if ($column && $operator && $value && $this->isPropertyFilterable($column, (new \ReflectionClass($builder))->getShortName())) {
                             $builder->{$istatement}($column, $operator, $value);
                         }
-
                     }
                 }
             }
         }
-
-        return $builder;
     }
 
 
@@ -132,12 +132,28 @@ trait FilterTrait
      */
     private function splitInput(string $input, bool $inverse_operator = false): array
     {
-        $split = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $input, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        if (str_starts_with($input, 'contains(') || str_starts_with($input, 'startswith(') || str_starts_with($input, 'endswith(')) {
+            $pattern = '/\(([^)]+)\)/';
+            preg_match($pattern, $input, $matches);
+
+            if ($matches[1]) {
+                $explode = explode('(', $input);
+                $operator = $inverse_operator ? OperatorUtils::mapOperator($explode[0], true) : OperatorUtils::mapOperator($explode[0]);
+                [$column, $value] = explode(',', $matches[1]);
+            }
+        } else {
+            $split = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $input, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            $column = $split[0];
+            $value = $split[2];
+            $operator = $inverse_operator ? OperatorUtils::mapOperator($split[1] ?? '', true) : OperatorUtils::mapOperator($split[1] ?? '');
+        }
+        $value = trim($value ?? '', " '");
+
 
         return [
-            trim($split[0] ?? ''),
-            $inverse_operator ? OperatorUtils::mapOperator($split[1] ?? '', true) : OperatorUtils::mapOperator($split[1] ?? ''),
-            trim($split[2] ?? '', " '")
+            trim($column ?? ''),
+            $operator,
+            $operator == 'LIKE' || $operator == 'NOT LIKE' ? "%{$value}%" : $value
         ];
     }
 }

@@ -26,6 +26,7 @@ class OperatorUtils
         'mul' => ['*', '/'],
         'div' => ['/', '*'],
         'mod' => ['%', ''],  // No inverse for modulo
+        'contains' => ['LIKE', 'NOT LIKE'],
         'startswith' => ['LIKE', 'NOT LIKE'],
         'endswith' => ['LIKE', 'NOT LIKE'],
         'substring' => ['SUBSTRING', ''],

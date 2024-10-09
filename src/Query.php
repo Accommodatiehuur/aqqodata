@@ -3,6 +3,7 @@
 namespace Aqqo\OData;
 
 use Aqqo\OData\Traits\AttributesTrait;
+use Aqqo\OData\Traits\SelectTrait;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Aqqo\OData\Traits\ResponseTrait;
 
 class Query implements \JsonSerializable
 {
+    use SelectTrait;
     use FilterTrait;
     use ExpandTrait;
     use SkipTrait;
@@ -28,7 +30,8 @@ class Query implements \JsonSerializable
     protected \ReflectionClass $subjectModelReflectionClass;
 
     /**
-     * @param EloquentBuilder<Model> $subject
+     * @param EloquentBuilder $subject
+     * @param bool $select
      * @param bool $filter
      * @param bool $expand
      * @param bool $skip
@@ -38,17 +41,20 @@ class Query implements \JsonSerializable
      */
     public function __construct(
         protected EloquentBuilder $subject,
-        bool                      $filter = true,
-        bool                      $expand = true,
-        bool                      $skip = true,
-        bool                      $top = true,
+        protected bool            $select = true,
+        protected bool            $filter = true,
+        protected bool            $expand = true,
+        protected bool            $skip = true,
+        protected bool            $top = true,
         protected ?Request        $request = null
     )
     {
         $this->request = !is_null($this->request) ? Request::createFrom($this->request) : app(Request::class);
-
         $this->subjectModelReflectionClass = new \ReflectionClass($this->subject->getModel());
+
         $this->handleAttributes();
+
+        if ($select) $this->addSelect();
 
         if ($filter) $this->addFilters();
 

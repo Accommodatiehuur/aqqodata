@@ -3,11 +3,10 @@
 namespace Aqqo\OData\Traits;
 
 use Aqqo\OData\Utils\OperatorUtils;
+use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\BelongsToRelationship;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -25,7 +24,7 @@ trait ExpandTrait
 
             if (!empty($expand_query)) {
                 // Parse expand into individual relationships (e.g., 'Customer,OrderItems($expand=Product)')
-                foreach (explode(',', $expand_query) as $expand) {
+                foreach (StringUtils::splitODataExpression($expand_query) as $expand) {
 
                     // Handle expand with filter: e.g., objects($filter=name eq 10)
                     if (str_contains($expand, '(')) {
@@ -34,6 +33,7 @@ trait ExpandTrait
                             $this->handleExpandsDetails($this->subject, $matches[2], $matches[1]);
                         }
                     } else if ($expandable = $this->isPropertyExpandable($expand)) {
+                        $this->addSelectForExpand($this->subject, $expandable);
                         $this->subject->with($expandable);
                     }
                 }
@@ -48,47 +48,50 @@ trait ExpandTrait
      * @param string $relation
      * @return void
      */
-    private function handleExpandsDetails(Builder|Relation $builder, string $details, string $relation)
+    private function handleExpandsDetails(Builder|Relation $parentBuilder, string $details, string $relation)
     {
         if ($expandable = $this->isPropertyExpandable($relation)) {
-            $model = $this->getModel($builder, $expandable);
+            $model = $this->getModel($parentBuilder, $expandable);
 
-            $builder->with($expandable, function (Builder|Relation $builder) use ($model, $relation, $details) {
-                foreach (preg_split('/;(?![^(]*\))/', $details) as $detail) {
+            $this->addSelectForExpand($parentBuilder, $expandable);
+            $parentBuilder->with($expandable, function (Builder|Relation $relationshipBuilder) use ($parentBuilder, $model, $relation, $details, $expandable) {
+                foreach (StringUtils::getSortedDetails($details) as $detail) {
                     [$key, $value] = explode('=', $detail, 2);
                     switch ($key) {
-                        case '$filter':
-                            [$column, $operator, $value] = $this->splitInput($value);
-                            $builder->where($column, OperatorUtils::mapOperator($operator), $value);
+                        case '$select':
+                            if ($this->select) {
+                                $this->addSelectForExpand($parentBuilder, $expandable);
+                                $selects = explode(',', $value);
+                                foreach ($selects as &$select) {
+                                    $select = "{$model->getTable()}.{$select}";
+                                }
+
+                                if ($relationshipBuilder instanceof HasOneOrMany || $relationshipBuilder instanceof HasOneOrManyThrough) {
+                                    $selects[] = "{$model->getTable()}.{$relationshipBuilder->getForeignKeyName()}";
+                                }
+
+                                if ($relationshipBuilder instanceof BelongsTo || $relationshipBuilder instanceof BelongsToMany) {
+                                    // TODO
+                                }
+
+                                $relationshipBuilder->select($selects);
+                            }
                             break;
 
-                        case '$select':
-//                            $selects = explode(',', $value);
-//                            foreach ($selects as &$select) {
-//                                $select = "{$model->getTable()}.{$select}";
-//                            }
-//
-//                            if ($builder instanceof HasOneOrMany || $builder instanceof HasOneOrManyThrough) {
-//                                $selects[] = "{$model->getTable()}.{$builder->getForeignKeyName()}";
-//                            }
-//
-//                            if ($builder instanceof BelongsTo || $builder instanceof BelongsToMany) {
-//                                // TODO
-//                            }
-//
-//                            $builder->select($selects);
+                        case '$filter':
+                            $this->appendFilterQuery($value, $relationshipBuilder);
                             break;
 
                         case '$expand':
                             if (str_contains($value, '(')) {
                                 preg_match('/([A-Za-z]+)\((.*)\)/', $value, $matches);
                                 if (isset($matches[1]) && isset($matches[2])) {
-                                    $this->handleExpandsDetails($builder, $matches[2], "{$relation}.{$matches[1]}");
+                                    $this->handleExpandsDetails($relationshipBuilder, $matches[2], "{$relation}.{$matches[1]}");
                                 }
                             } else {
                                 $value = rtrim($value, ')');
                                 if ($expandable = $this->isPropertyExpandable($value, (new \ReflectionClass($model))->getShortName())) {
-                                    $builder->with($expandable);
+                                    $relationshipBuilder->with($expandable);
                                 }
                             }
                             break;
