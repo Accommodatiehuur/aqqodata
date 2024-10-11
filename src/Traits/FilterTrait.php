@@ -75,7 +75,7 @@ trait FilterTrait
                     } else {
                         [$column, $operator, $value] = $this->splitInput($gf);
 
-                        if ($column && $operator && $value && $this->isPropertyFilterable($column, (new \ReflectionClass($builder->getModel()))->getShortName())) {
+                        if ($column !== '' && $operator !== '' && $value !== '' && $this->isPropertyFilterable($column, (new \ReflectionClass($builder->getModel()))->getShortName())) {
                             $builder->{$istatement}($column, $operator, $value);
                         }
                     }
@@ -102,14 +102,14 @@ trait FilterTrait
                 if ($column === 'all') {
                     $builder->whereDoesntHave($expandable, function (Builder $q) use ($value, $expandable) {
                         [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
-                        if ($column && $operator && $val && $this->isPropertyFilterable("{$expandable}.{$column}")) {
+                        if ($column !== '' && $operator !== '' && $val !== '' && $this->isPropertyFilterable("{$expandable}.{$column}")) {
                             return $q->where($column, $operator, $val);
                         }
                     });
                 } else {
                     $builder->whereHas($expandable, function (Builder $q) use ($value, $expandable) {
                         [$column, $operator, $val] = $this->splitInput($value);
-                        if ($column && $operator && $val && $this->isPropertyFilterable("{$expandable}.{$column}")) {
+                        if ($column !== '' && $operator !== '' && $val !== '' && $this->isPropertyFilterable("{$expandable}.{$column}")) {
                             return $q->where($column, $operator, $val);
                         }
                     });
@@ -172,6 +172,7 @@ trait FilterTrait
                 $tokens[0],
                 $tokens[2]
             ];
+
         }
 
         $column = $tokens[0];
