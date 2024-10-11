@@ -30,7 +30,7 @@ class Query implements \JsonSerializable
     protected \ReflectionClass $subjectModelReflectionClass;
 
     /**
-     * @param EloquentBuilder $subject
+     * @param EloquentBuilder<Model> $subject
      * @param bool $select
      * @param bool $filter
      * @param bool $expand

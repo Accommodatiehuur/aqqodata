@@ -8,13 +8,13 @@ use Attribute;
 class ODataRelationship
 {
     public function __construct(
-        private ?string $name = null,
+        private string $name,
         private ?string $description = null,
     )
     {
     }
 
-    public function getName(): ?string
+    public function getName(): string
     {
         return $this->name;
     }

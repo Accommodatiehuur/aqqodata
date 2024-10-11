@@ -67,23 +67,26 @@ class StringUtils
 
     /**
      * @param string $details
-     * @return array
+     * @return array<int, string>
      */
     public static function getSortedDetails(string $details): array
     {
         $details = preg_split('/;(?![^(]*\))/', $details);
         $sorted = [];
 
-        foreach ($details as $detail) {
-            if (str_starts_with($detail, '$select')) {
-                $sorted[0] = $detail;
-            } else if (str_starts_with($detail, '$expand')) {
-                $sorted[1] = $detail;
-            } else if (str_starts_with($detail, '$filter')) {
-                $sorted[2] = $detail;
+        if ($details !== false) {
+            foreach ($details as $detail) {
+                if (str_starts_with($detail, '$select')) {
+                    $sorted[0] = $detail;
+                } else if (str_starts_with($detail, '$expand')) {
+                    $sorted[1] = $detail;
+                } else if (str_starts_with($detail, '$filter')) {
+                    $sorted[2] = $detail;
+                }
             }
+            ksort($sorted);
+            return array_values($sorted);
         }
-        ksort($sorted);
-        return array_values($sorted);
+        return [];
     }
 }

@@ -2,12 +2,14 @@
 
 namespace Aqqo\OData\Traits;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use PhpParser\Node\Expr\AssignOp\Mod;
 
 trait SelectTrait
 {
@@ -25,10 +27,10 @@ trait SelectTrait
 
     /**
      * @param string $select
-     * @param Builder|Relation $builder
+     * @param Builder<Model>|Relation<Model> $builder
      * @return void
      */
-    public function appendSelectQuery(string $select, Builder|Relation $builder)
+    public function appendSelectQuery(string $select, Builder|Relation $builder): void
     {
         $selects = [];
         foreach (explode(',', $select) as $item) {
@@ -36,11 +38,13 @@ trait SelectTrait
                 $selects[] = $item;
             }
         }
-        $builder->select($selects);
+        if (!empty($selects)) {
+            $builder->select($selects);
+        }
     }
 
     /**
-     * @param Builder|Relation $parent
+     * @param Builder<Model>|Relation<Model> $parent
      * @param string $relation
      * @return void
      */

@@ -23,9 +23,10 @@ trait FilterTrait
 
     /**
      * @param string $filter
-     * @param Builder|Relation $builder
+     * @param Builder<Model>|Relation<Model> $builder
      * @param string $statement
      * @return void
+     * @throws \ReflectionException
      */
     public function appendFilterQuery(string $filter, Builder|Relation $builder, string $statement = 'where'): void
     {
@@ -85,13 +86,13 @@ trait FilterTrait
 
 
     /**
-     * @param Builder<Model> $builder
+     * @param Builder<Model>|Relation<Model> $builder
      * @param string $column
      * @param string $operator
      * @param string $value
      * @return void
      */
-    protected function applyRelationshipCondition(Builder $builder, string $column, string $operator, string $value): void
+    protected function applyRelationshipCondition(Builder|Relation $builder, string $column, string $operator, string $value): void
     {
         if ($column === 'any' || $column === 'all') {
             $value = str_replace(['(', ')'],'', $value);

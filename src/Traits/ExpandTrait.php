@@ -2,13 +2,9 @@
 
 namespace Aqqo\OData\Traits;
 
-use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
-use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 trait ExpandTrait
@@ -29,7 +25,7 @@ trait ExpandTrait
                     // Handle expand with filter: e.g., objects($filter=name eq 10)
                     if (str_contains($expand, '(')) {
                         preg_match('/([A-Za-z]+)\((.*)\)/', $expand, $matches);
-                        if (isset($matches[1])) {
+                        if (isset($matches[1]) && isset($matches[2])) {
                             $this->handleExpandsDetails($this->subject, $matches[2], $matches[1]);
                         }
                     } else if ($expandable = $this->isPropertyExpandable($expand)) {
@@ -48,9 +44,15 @@ trait ExpandTrait
      * @param string $relation
      * @return void
      */
+    /**
+     * @param Builder<Model>|Relation<Model> $parentBuilder
+     * @param string $details
+     * @param string $relation
+     * @return void
+     */
     private function handleExpandsDetails(Builder|Relation $parentBuilder, string $details, string $relation)
     {
-        if ($expandable = $this->isPropertyExpandable($relation)) {
+        if (($expandable = $this->isPropertyExpandable($relation)) !== false) {
             $model = $this->getModel($parentBuilder, $expandable);
 
             $this->addSelectForExpand($parentBuilder, $expandable);
@@ -93,7 +95,12 @@ trait ExpandTrait
      * @param string $expand
      * @return \Illuminate\Database\Eloquent\Model
      */
-    private function getModel(Builder|Relation $builder, string $expand)
+    /**
+     * @param Builder<Model>|Relation<Model> $builder
+     * @param string $expand
+     * @return Model
+     */
+    private function getModel(Builder|Relation $builder, string $expand): Model
     {
         $model = $builder->getModel();
         foreach (explode('.', $expand) as $item) {

@@ -36,13 +36,14 @@ trait AttributesTrait
     }
 
     /**
-     * @param Builder $builder
+     * @param Builder<Model> $builder
      * @return void
      * @throws \ReflectionException
      */
     private function handleModel(Builder $builder): void
     {
         $reflectionClass = new \ReflectionClass($builder->getModel());
+        $shortName = strtolower($reflectionClass->getShortName());
 
         foreach ($reflectionClass->getAttributes(
             ODataProperty::class,
@@ -52,19 +53,19 @@ trait AttributesTrait
             $instance = $attribute->newInstance();
 
             if ($instance->getSelectable()) {
-                $this->selectables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
+                $this->selectables[$shortName][] = $instance->getName();
             }
 
             if ($instance->getFilterable()) {
-                $this->filterables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
+                $this->filterables[$shortName][] = $instance->getName();
             }
 
             if ($instance->getSearchable()) {
-                $this->searchables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
+                $this->searchables[$shortName][] = $instance->getName();
             }
 
             if ($instance->getOrderable()) {
-                $this->orderables[strtolower($reflectionClass->getShortName())][] = $instance->getName();
+                $this->orderables[$shortName][] = $instance->getName();
             }
         }
 
@@ -73,7 +74,7 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)?->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables[strtolower($reflectionClass->getShortName())][strtolower($relationshipInstance->getName())] = $reflectionMethod->getName();
+                $this->expandables[$shortName][strtolower($relationshipInstance->getName())] = $reflectionMethod->getName();
 
                 $model = $builder->getModel()->{$reflectionMethod->getName()}()->getModel();
                 $reflection = new \ReflectionClass($model);
