@@ -26,9 +26,9 @@ class OperatorUtils
         'mul' => ['*', '/'],
         'div' => ['/', '*'],
         'mod' => ['%', ''],  // No inverse for modulo
-        'contains' => ['LIKE', 'NOT LIKE'],
-        'startswith' => ['LIKE', 'NOT LIKE'],
-        'endswith' => ['LIKE', 'NOT LIKE'],
+        'contains' => ['LIKE', 'NOT LIKE', '%{$value}%'],
+        'startswith' => ['LIKE', 'NOT LIKE', '{$value}%'],
+        'endswith' => ['LIKE', 'NOT LIKE', '%{$value}'],
         'substring' => ['SUBSTRING', ''],
         'length' => ['LENGTH', ''],
         'indexof' => ['LOCATE', ''],
@@ -59,5 +59,18 @@ class OperatorUtils
     {
         $map = self::$operatorMap[$odataOperator] ?? ['=', '='];
         return $inverse ? $map[1] : $map[0];
+    }
+
+    /**
+     * @param string $odataOperator
+     * @param string $value
+     * @return string
+     */
+    public static function getValueBasedOnOperator(string $odataOperator, string $value): string
+    {
+        if (isset(self::$operatorMap[$odataOperator][2])) {
+            return str_replace('{$value}', $value, self::$operatorMap[$odataOperator][2]);
+        }
+        return $value;
     }
 }

@@ -75,7 +75,7 @@
         "lint": [
             "@php vendor/bin/phpstan analyse --verbose --ansi"
         ],
-        "test": "vendor/bin/pest --parallel",
+        "test": "vendor/bin/pest",
         "testcoverage": "XDEBUG_MODE=coverage ./vendor/bin/pest --coverage",
         "analyse": "vendor/bin/phpstan analyse --ansi --memory-limit=4G",
         "baseline": "vendor/bin/phpstan analyse --generate-baseline --memory-limit=4G"

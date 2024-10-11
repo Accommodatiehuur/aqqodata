@@ -31,7 +31,6 @@ trait FilterTrait
     {
         $expressions = StringUtils::splitODataExpression($filter);
 
-
         if ((str_contains($filter, '(') || str_contains($filter, ')')) && count($expressions) > 1) {
             $builder->where(function (Builder $q) use ($statement, $expressions) {
                 foreach ($expressions as $value) {
@@ -74,7 +73,8 @@ trait FilterTrait
                         }
                     } else {
                         [$column, $operator, $value] = $this->splitInput($gf);
-                        if ($column && $operator && $value && $this->isPropertyFilterable($column, (new \ReflectionClass($builder))->getShortName())) {
+
+                        if ($column && $operator && $value && $this->isPropertyFilterable($column, (new \ReflectionClass($builder->getModel()))->getShortName())) {
                             $builder->{$istatement}($column, $operator, $value);
                         }
                     }
@@ -132,28 +132,56 @@ trait FilterTrait
      */
     private function splitInput(string $input, bool $inverse_operator = false): array
     {
-        if (str_starts_with($input, 'contains(') || str_starts_with($input, 'startswith(') || str_starts_with($input, 'endswith(')) {
-            $pattern = '/\(([^)]+)\)/';
-            preg_match($pattern, $input, $matches);
+        // Define the regex pattern to match tokens:
+        // 1. Functions and operators
+        // 2. Parentheses and commas
+        // 3. String literals enclosed in single quotes
+        // 4. Numeric values
+        // 5. Field names or identifiers
+        $pattern = '/\b(contains|startswith|endswith|and|or|not|eq|ne|gt|ge|lt|le)\b|([(),])|\'([^\']*)\'|(\d+(\.\d+)?)|([A-Za-z_][A-Za-z0-9_]*)/i';
 
-            if ($matches[1]) {
-                $explode = explode('(', $input);
-                $operator = $inverse_operator ? OperatorUtils::mapOperator($explode[0], true) : OperatorUtils::mapOperator($explode[0]);
-                [$column, $value] = explode(',', $matches[1]);
+        // Perform global matching
+        preg_match_all($pattern, $input, $matches, PREG_SET_ORDER);
+
+        $tokens = [];
+        foreach ($matches as $match) {
+            if (!empty($match[1])) {
+                // Functions and operators (e.g., contains, eq, and)
+                $tokens[] = strtolower($match[1]);
+            } elseif (!empty($match[2])) {
+                // Parentheses and commas (e.g., (, ), ,)
+                // Optionally, include them as tokens or skip
+                // For splitting purposes, we'll skip them
+                continue;
+            } elseif (isset($match[3]) && $match[3] !== '') {
+                // String literals without quotes
+                $tokens[] = $match[3];
+            } elseif (isset($match[4]) && $match[4] !== '') {
+                // Numeric values
+                $tokens[] = $match[4];
+            } elseif (isset($match[6]) && $match[6] !== '') {
+                // Field names or identifiers
+                $tokens[] = $match[6];
             }
-        } else {
-            $split = preg_split('/(?<=\s)(eq|ne|ge|gt|le|lt|)(?=\s)/', $input, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-            $column = $split[0];
-            $value = $split[2];
-            $operator = $inverse_operator ? OperatorUtils::mapOperator($split[1] ?? '', true) : OperatorUtils::mapOperator($split[1] ?? '');
         }
-        $value = trim($value ?? '', " '");
+
+        if (in_array($tokens[0], ['contains', 'startswith', 'endswith'])) {
+            $tokens = [
+                $tokens[1],
+                $tokens[0],
+                $tokens[2]
+            ];
+        }
+
+        $column = $tokens[0];
+        $operator = OperatorUtils::mapOperator($tokens[1], $inverse_operator);
+        $value = OperatorUtils::getValueBasedOnOperator($tokens[1], $tokens[2]);
 
 
         return [
-            trim($column ?? ''),
+            $column,
             $operator,
-            $operator == 'LIKE' || $operator == 'NOT LIKE' ? "%{$value}%" : $value
+            $value
         ];
     }
 }
