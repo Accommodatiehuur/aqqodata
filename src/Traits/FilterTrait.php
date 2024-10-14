@@ -166,13 +166,16 @@ trait FilterTrait
             }
         }
 
+        if (!isset($tokens[0]) || !isset($tokens[1]) || !isset($tokens[2])) {
+            return ['', '', ''];
+        }
+
         if (in_array($tokens[0], ['contains', 'startswith', 'endswith'])) {
             $tokens = [
                 $tokens[1],
                 $tokens[0],
                 $tokens[2]
             ];
-
         }
 
         $column = $tokens[0];
