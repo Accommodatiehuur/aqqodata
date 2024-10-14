@@ -2,8 +2,6 @@
 
 namespace Aqqo\OData\Traits;
 
-use Illuminate\Database\Eloquent\Collection;
-
 trait ResponseTrait
 {
     /**
@@ -16,14 +14,10 @@ trait ResponseTrait
         $query->getQuery()->limit = null;
         $all_records_count = $query->count();
 
-        $value = $this->subject->get();
+        $value = $this->get();
         $count = $value->count();
         if (property_exists($model = $this->subject->getModel(), 'resource')) {
-            if ($value instanceof Collection) {
-                $value = $model->resource::collection($value);
-            } else {
-                $value = new $model->resource($value);
-            }
+            $value = $model->resource::collection($value);
         }
 
         $response = [

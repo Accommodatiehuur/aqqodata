@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\Relation;
-use PhpParser\Node\Expr\AssignOp\Mod;
 
+/**
+ * @template TModelClass of Model
+ * @template TRelatedModel of Model
+ */
 trait SelectTrait
 {
     /**
@@ -26,29 +28,35 @@ trait SelectTrait
     }
 
     /**
+     * Append select clauses to the builder or relation.
+     *
      * @param string $select
-     * @param Builder<Model>|Relation<Model> $builder
+     * @param Builder<TModelClass> $builder
      * @return void
      */
-    public function appendSelectQuery(string $select, Builder|Relation $builder): void
+    public function appendSelectQuery(string $select, Builder $builder): void
     {
         $selects = [];
-        foreach (explode(',', $select) as $item) {
-            if ($this->isPropertySelectable($item, (new \ReflectionClass($builder))->getShortName())) {
-                $selects[] = $item;
+        if (!empty($select)) {
+            $shortName = (new \ReflectionClass($builder->getModel()))->getShortName();
+            foreach (explode(',', $select) as $item) {
+                if ($this->isPropertySelectable(trim($item), $shortName)) {
+                    $selects[] = trim($item);
+                }
             }
         }
+
         if (!empty($selects)) {
             $builder->select($selects);
         }
     }
 
     /**
-     * @param Builder<Model>|Relation<Model> $parent
+     * @param Builder<TModelClass> $parent
      * @param string $relation
      * @return void
      */
-    public function addSelectForExpand(Builder|Relation $parent, string $relation)
+    public function addSelectForExpand(Builder $parent, string $relation): void
     {
         if ($parent->getQuery()->columns !== null) {
             $relationshipBinding = $parent->getRelation($relation);

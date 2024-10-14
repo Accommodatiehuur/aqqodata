@@ -40,7 +40,7 @@ class ODataProperty
     /**
      * @return bool
      */
-    public function getSelectable(): bool
+    public function isSelectable(): bool
     {
         return $this->selectable;
     }
@@ -48,7 +48,7 @@ class ODataProperty
     /**
      * @return bool
      */
-    public function getFilterable(): bool
+    public function isFilterable(): bool
     {
         return $this->filterable;
     }
@@ -56,7 +56,7 @@ class ODataProperty
     /**
      * @return bool
      */
-    public function getSearchable(): bool
+    public function isSearchable(): bool
     {
         return $this->searchable;
     }
@@ -64,7 +64,7 @@ class ODataProperty
     /**
      * @return bool
      */
-    public function getOrderable(): bool
+    public function isOrderable(): bool
     {
         return $this->orderable;
     }

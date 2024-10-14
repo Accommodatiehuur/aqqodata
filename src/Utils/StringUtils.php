@@ -2,24 +2,26 @@
 
 namespace Aqqo\OData\Utils;
 
+use Illuminate\Support\Str;
+
 /**
- * @class StringUtils
- * The class below contains all static functions for strings.
+ * Class StringUtils
+ *
+ * Provides utility functions for string manipulation, specifically tailored for OData expressions.
  */
 class StringUtils
 {
-
     /**
-     * Functions splits the odata expression into groups, with each group in between parentheses.
+     * Splits an OData expression into its constituent parts, respecting nested parentheses.
      *
-     * @param string $expr
-     * @return array<int, string>
+     * @param string $expr The OData expression to split.
+     * @return array<string> The split components of the expression.
      */
     public static function splitODataExpression(string $expr): array
     {
-        // Early return if there are no parentheses
-        if (!str_contains($expr, '(') && !str_contains($expr, ')')) {
-            return [$expr];
+        // Early return if there are no parentheses or logical operators
+        if (!Str::contains($expr, ['(', ')', ' and ', ' or '])) {
+            return [trim($expr)];
         }
 
         $result = [];
@@ -31,28 +33,34 @@ class StringUtils
         while ($i < $length) {
             $char = $expr[$i];
 
-            // Handle parentheses
+            // Handle opening parenthesis
             if ($char === '(') {
                 $depth++;
-            } elseif ($char === ')') {
+            }
+            // Handle closing parenthesis
+            elseif ($char === ')') {
                 $depth--;
             }
 
-            // Check for ' and ' or ' or ' at depth 0
-            if ($depth === 0 && (substr($expr, $i, 5) === ' and ' || substr($expr, $i, 4) === ' or ')) {
-                $current = trim($current);
-                if ($current !== '') {
-                    $result[] = $current;
+            // Check for logical operators at depth 0
+            if ($depth === 0) {
+                // Check for ' and ' (length 5) and ' or ' (length 4)
+                if (substr($expr, $i, 5) === ' and ') {
+                    $result[] = trim($current);
+                    $result[] = 'and';
+                    $current = '';
+                    $i += 5;
+                    continue;
+                } elseif (substr($expr, $i, 4) === ' or ') {
+                    $result[] = trim($current);
+                    $result[] = 'or';
+                    $current = '';
+                    $i += 4;
+                    continue;
                 }
-
-                // Add operator and reset current
-                $result[] = substr($expr, $i, 5) === ' and ' ? 'and' : 'or';
-                $current = '';
-                $i += substr($expr, $i, 5) === ' and ' ? 5 : 4;
-                continue;
             }
 
-            // Accumulate current character
+            // Accumulate the current character
             $current .= $char;
             $i++;
         }
@@ -66,27 +74,49 @@ class StringUtils
     }
 
     /**
-     * @param string $details
-     * @return array<int, string>
+     * Splits a details string into individual components and sorts them in a predefined order.
+     *
+     * The order is:
+     * 1. $select
+     * 2. $expand
+     * 3. $filter
+     *
+     * @param string $details The details string to split and sort.
+     * @return array<string> The sorted detail components.
      */
     public static function getSortedDetails(string $details): array
     {
-        $details = preg_split('/;(?![^(]*\))/', $details);
+        // Split by semicolons not within parentheses
+        $parts = preg_split('/;(?![^()]*\))/', $details);
+
+        if ($parts === false) {
+            return [];
+        }
+
+        // Define the desired order of details
+        $order = [
+            '$select' => 1,
+            '$expand' => 2,
+            '$filter' => 3,
+        ];
+
+        // Initialize an associative array to store sorted details
         $sorted = [];
 
-        if ($details !== false) {
-            foreach ($details as $detail) {
-                if (str_starts_with($detail, '$select')) {
-                    $sorted[0] = $detail;
-                } else if (str_starts_with($detail, '$expand')) {
-                    $sorted[1] = $detail;
-                } else if (str_starts_with($detail, '$filter')) {
-                    $sorted[2] = $detail;
+        foreach ($parts as $part) {
+            $part = trim($part);
+            foreach ($order as $key => $priority) {
+                if (Str::startsWith($part, $key)) {
+                    $sorted[$priority] = $part;
+                    break;
                 }
             }
-            ksort($sorted);
-            return array_values($sorted);
         }
-        return [];
+
+        // Sort the details based on the defined priority
+        ksort($sorted);
+
+        // Return the sorted details as a numerically indexed array
+        return array_values($sorted);
     }
 }

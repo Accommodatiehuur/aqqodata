@@ -7,131 +7,236 @@ use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use ReflectionClass;
 
+/**
+ * @template TModelClass of Model
+ * @template TRelatedModel of Model
+ */
 trait FilterTrait
 {
     /**
      * @return void
+     * @throws \ReflectionException
      */
     public function addFilters(): void
     {
         $filter = $this->request?->input('$filter');
-        if (!empty($filter)) {
-            $this->appendFilterQuery(strval($filter), $this->subject);
+
+        if (empty($filter)) {
+            return;
         }
+
+        $this->appendFilterQuery(strval($filter), $this->subject);
     }
 
     /**
+     * Append filter queries to the builder based on the OData filter string.
+     *
      * @param string $filter
-     * @param Builder<Model>|Relation<Model> $builder
+     * @param Builder<TModelClass> $builder
      * @param string $statement
      * @return void
      * @throws \ReflectionException
      */
-    public function appendFilterQuery(string $filter, Builder|Relation $builder, string $statement = 'where'): void
+    public function appendFilterQuery(string $filter, Builder $builder, string $statement = 'where'): void
     {
         $expressions = StringUtils::splitODataExpression($filter);
 
-        if ((str_contains($filter, '(') || str_contains($filter, ')')) && count($expressions) > 1) {
-            $builder->where(function (Builder $q) use ($statement, $expressions) {
-                foreach ($expressions as $value) {
-                    if (in_array($value = trim($value), ['and', 'or'])) {
-                        if ($value === 'or') {
-                            $statement = 'orWhere';
-                        }
-                        continue;
-                    }
-
-                    $q->{$statement}(function (Builder $q) use ($value, $statement) {
-                        if (str_starts_with($value, '(') && str_ends_with($value, ')')) {
-                            $value = substr($value, 1, -1);
-                        }
-
-                        $this->appendFilterQuery($value, $q, $statement);
-                    });
-
-                }
-            });
+        if ($this->hasNestedExpressions($filter, $expressions)) {
+            $this->applyNestedExpressions($expressions, $builder, $statement);
         } else {
-            if (str_starts_with($filter, '(') && str_ends_with($filter, ')')) {
-                $filter = substr($filter, 1, -1);
-            }
-            $grouped_filters = preg_split('/(?<=\s)(and|or)(?=\s)/', $filter, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-            $istatement = 'where';
-            if ($grouped_filters) {
-                foreach ($grouped_filters as $gf) {
-                    if (in_array($gf = trim($gf), ['and', 'or'])) {
-                        if ($gf === 'or') {
-                            $istatement = 'orWhere';
-                        }
-                        continue;
-                    }
-
-                    if (str_starts_with($gf, 'all(') || str_starts_with($gf, 'any(')) {
-                        preg_match('/(any|all)\((.+)\)/', $gf, $matches);
-                        if (isset($matches[1]) && isset($matches[2])) {
-                            $this->applyRelationshipCondition($builder, $matches[1], '', $matches[2]);
-                        }
-                    } else {
-                        [$column, $operator, $value] = $this->splitInput($gf);
-
-                        if ($column !== '' && $operator !== '' && $value !== '' && $this->isPropertyFilterable($column, (new \ReflectionClass($builder->getModel()))->getShortName())) {
-                            $builder->{$istatement}($column, $operator, $value);
-                        }
-                    }
-                }
-            }
+            $this->applySimpleExpressions($filter, $builder);
         }
     }
 
+    /**
+     * Determine if the filter contains nested expressions.
+     *
+     * @param string $filter
+     * @param array<string> $expressions
+     * @return bool
+     */
+    private function hasNestedExpressions(string $filter, array $expressions): bool
+    {
+        return (str_contains($filter, '(') || str_contains($filter, ')')) && count($expressions) > 1;
+    }
 
     /**
-     * @param Builder<Model>|Relation<Model> $builder
+     * Apply nested expressions to the builder.
+     *
+     * @param array<string> $expressions
+     * @param Builder<TModelClass> $builder
+     * @param string $statement
+     * @return void
+     * @throws \ReflectionException
+     */
+    private function applyNestedExpressions(array $expressions, Builder $builder, string $statement): void
+    {
+        $builder->where(function (Builder $query) use ($expressions, $statement) {
+            foreach ($expressions as $value) {
+                $value = trim($value);
+                if (in_array($value, ['and', 'or'], true)) {
+                    $statement = $value === 'or' ? 'orWhere' : 'where';
+                    continue;
+                }
+
+                $query->{$statement}(function (Builder $subQuery) use ($value, $statement) {
+                    $value = $this->stripParentheses($value);
+                    $this->appendFilterQuery($value, $subQuery, $statement);
+                });
+            }
+        });
+    }
+
+    /**
+     * Apply simple expressions to the builder.
+     *
+     * @param string $filter
+     * @param Builder<TModelClass> $builder
+     * @return void
+     * @throws \ReflectionException
+     */
+    private function applySimpleExpressions(string $filter, Builder $builder): void
+    {
+        $filter = $this->stripParentheses($filter);
+        $groupedFilters = preg_split('/\s+(and|or)\s+/i', $filter, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        if (!$groupedFilters) {
+            return;
+        }
+
+        $currentStatement = 'where';
+
+        foreach ($groupedFilters as $filterPart) {
+            $filterPart = trim($filterPart);
+
+            if (in_array(strtolower($filterPart), ['and', 'or'], true)) {
+                $currentStatement = strtolower($filterPart) === 'or' ? 'orWhere' : 'where';
+                continue;
+            }
+
+            if ($this->isAggregateFunction($filterPart)) {
+                $this->handleAggregateFunction($filterPart, $builder, $currentStatement);
+                continue;
+            }
+
+            [$column, $operator, $value] = $this->splitInput($filterPart);
+
+            if (!$this->isValidFilter($column, $operator, $value, $builder)) {
+                continue;
+            }
+
+            $builder->{$currentStatement}($column, $operator, $value);
+        }
+    }
+
+    /**
+     * Strip leading and trailing parentheses from a string.
+     *
+     * @param string $value
+     * @return string
+     */
+    private function stripParentheses(string $value): string
+    {
+        return (str_starts_with($value, '(') && str_ends_with($value, ')'))
+            ? substr($value, 1, -1)
+            : $value;
+    }
+
+    /**
+     * Check if the filter part is an aggregate function (any/all).
+     *
+     * @param string $filterPart
+     * @return bool
+     */
+    private function isAggregateFunction(string $filterPart): bool
+    {
+        return str_starts_with($filterPart, 'any(') || str_starts_with($filterPart, 'all(');
+    }
+
+    /**
+     * Handle aggregate functions (any/all) in the filter.
+     *
+     * @param string $filterPart
+     * @param Builder<TModelClass> $builder
+     * @param string $statement
+     * @return void
+     */
+    private function handleAggregateFunction(string $filterPart, Builder $builder, string $statement): void
+    {
+        if (!preg_match('/^(any|all)\((\w+),\s*(.+)\)$/i', $filterPart, $matches)) {
+            return;
+        }
+
+        [$_, $function, $relation, $condition] = $matches;
+
+        $this->applyRelationshipCondition($builder, strtolower($function), $relation, $condition);
+    }
+
+    /**
+     * Validate the filter components before applying to the builder.
+     *
      * @param string $column
      * @param string $operator
      * @param string $value
-     * @return void
+     * @param Builder<TModelClass> $builder
+     * @return bool
+     * @throws \ReflectionException
      */
-    protected function applyRelationshipCondition(Builder|Relation $builder, string $column, string $operator, string $value): void
+    private function isValidFilter(string $column, string $operator, string $value, Builder $builder): bool
     {
-        if ($column === 'any' || $column === 'all') {
-            $value = str_replace(['(', ')'],'', $value);
-            [$relation, $value] = explode(',', $value);
-
-            if ($expandable = $this->isPropertyExpandable($relation)) {
-                if ($column === 'all') {
-                    $builder->whereDoesntHave($expandable, function (Builder $q) use ($value, $expandable) {
-                        [$column, $operator, $val] = $this->splitInput($value, inverse_operator: true);
-                        if ($column !== '' && $operator !== '' && $val !== '' && $this->isPropertyFilterable("{$expandable}.{$column}")) {
-                            return $q->where($column, $operator, $val);
-                        }
-                    });
-                } else {
-                    $builder->whereHas($expandable, function (Builder $q) use ($value, $expandable) {
-                        [$column, $operator, $val] = $this->splitInput($value);
-                        if ($column !== '' && $operator !== '' && $val !== '' && $this->isPropertyFilterable("{$expandable}.{$column}")) {
-                            return $q->where($column, $operator, $val);
-                        }
-                    });
-                }
-            }
-        } else {
-            $segments = explode('/', $column);
-            $relation = $segments[0];
-            $relatedField = $segments[1];
-            // Regular relationship condition
-            $builder->whereHas($relation, function ($q) use ($relatedField, $operator, $value) {
-                $q->where(trim($relatedField), OperatorUtils::mapOperator($operator), $value);
-            });
+        if (empty($column) || empty($operator) || empty($value)) {
+            return false;
         }
+
+        $modelClass = get_class($builder->getModel());
+        $reflection = new ReflectionClass($modelClass);
+        $shortName = $reflection->getShortName();
+
+        return $this->isPropertyFilterable($column, $shortName);
     }
 
     /**
+     * Apply relationship conditions (any/all or regular relationships) to the builder.
+     *
+     * @param Builder<TModelClass> $builder
+     * @param string $function
+     * @param string $relation
+     * @param string $condition
+     * @return void
+     */
+    protected function applyRelationshipCondition(Builder $builder, string $function, string $relation, string $condition): void
+    {
+        $condition = trim($condition, '()');
+
+        [$column, $operator, $value] = $this->splitInput($condition, $function === 'all');
+
+        if (!$this->isPropertyFilterable("{$relation}.{$column}")) {
+            return;
+        }
+
+        $expandable = $this->isPropertyExpandable($relation);
+
+        if (!$expandable) {
+            return;
+        }
+
+        $method = ($function === 'all' ? 'whereDoesntHave' : 'whereHas');
+
+        $builder->{$method}($expandable, function (Builder $q) use ($column, $operator, $value) {
+            $q->where($column, $operator, $value);
+        });
+    }
+
+    /**
+     * Split the input filter string into column, operator, and value.
+     *
      * @param string $input
-     * @param bool $inverse_operator
+     * @param bool $inverseOperator
      * @return array<int, string>
      */
-    private function splitInput(string $input, bool $inverse_operator = false): array
+    private function splitInput(string $input, bool $inverseOperator = false): array
     {
         // Define the regex pattern to match tokens:
         // 1. Functions and operators
@@ -144,44 +249,39 @@ trait FilterTrait
         // Perform global matching
         preg_match_all($pattern, $input, $matches, PREG_SET_ORDER);
 
-        $tokens = [];
-        foreach ($matches as $match) {
+        $tokens = array_map(function ($match) {
             if (!empty($match[1])) {
                 // Functions and operators (e.g., contains, eq, and)
-                $tokens[] = strtolower($match[1]);
-            } elseif (!empty($match[2])) {
-                // Parentheses and commas (e.g., (, ), ,)
-                // Optionally, include them as tokens or skip
-                // For splitting purposes, we'll skip them
-                continue;
-            } elseif (isset($match[3]) && $match[3] !== '') {
+                return strtolower($match[1]);
+            } elseif (!empty($match[3])) {
                 // String literals without quotes
-                $tokens[] = $match[3];
-            } elseif (isset($match[4]) && $match[4] !== '') {
+                return $match[3];
+            } elseif (!empty($match[4])) {
                 // Numeric values
-                $tokens[] = $match[4];
-            } elseif (isset($match[6]) && $match[6] !== '') {
+                return $match[4];
+            } elseif (!empty($match[6])) {
                 // Field names or identifiers
-                $tokens[] = $match[6];
+                return $match[6];
             }
-        }
+            return null;
+        }, $matches);
 
-        if (!isset($tokens[0]) || !isset($tokens[1]) || !isset($tokens[2])) {
+        $tokens = array_filter($tokens, fn($token) => $token !== null);
+
+        if (count($tokens) < 3) {
             return ['', '', ''];
         }
 
-        if (in_array($tokens[0], ['contains', 'startswith', 'endswith'])) {
-            $tokens = [
-                $tokens[1],
-                $tokens[0],
-                $tokens[2]
-            ];
+        // Corrected logic: Check tokens[0] for function-based operators
+        if (in_array($tokens[0], ['contains', 'startswith', 'endswith'], true)) {
+            $column = $tokens[2];
+            $operator = OperatorUtils::mapOperator($tokens[0], $inverseOperator);
+            $value = OperatorUtils::getValueBasedOnOperator($tokens[0], $tokens[4]);
+        } else {
+            $column = $tokens[0];
+            $operator = OperatorUtils::mapOperator($tokens[1], $inverseOperator);
+            $value = OperatorUtils::getValueBasedOnOperator($tokens[1], $tokens[2]);
         }
-
-        $column = $tokens[0];
-        $operator = OperatorUtils::mapOperator($tokens[1], $inverse_operator);
-        $value = OperatorUtils::getValueBasedOnOperator($tokens[1], $tokens[2]);
-
 
         return [
             $column,

@@ -4,7 +4,7 @@ namespace Aqqo\OData;
 
 use Aqqo\OData\Traits\AttributesTrait;
 use Aqqo\OData\Traits\SelectTrait;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -14,23 +14,34 @@ use Aqqo\OData\Traits\SkipTrait;
 use Aqqo\OData\Traits\TopTrait;
 use Aqqo\OData\Traits\ResponseTrait;
 
+/**
+ * @template TModelClass of Model
+ * @template TRelatedModel of Model
+ */
 class Query implements \JsonSerializable
 {
+    /** @use SelectTrait<TModelClass, TRelatedModel> */
     use SelectTrait;
+    /** @use FilterTrait<TModelClass, TRelatedModel> */
     use FilterTrait;
+    /** @use ExpandTrait<TModelClass, TRelatedModel> */
     use ExpandTrait;
+    /** @use SkipTrait */
     use SkipTrait;
+    /** @use TopTrait */
     use TopTrait;
+    /** @use ResponseTrait */
     use ResponseTrait;
+    /** @use AttributesTrait */
     use AttributesTrait;
 
     /**
-     * @var \ReflectionClass<Model>
+     * @var \ReflectionClass<TModelClass>
      */
     protected \ReflectionClass $subjectModelReflectionClass;
 
     /**
-     * @param EloquentBuilder<Model> $subject
+     * @param Builder<TModelClass> $subject
      * @param bool $select
      * @param bool $filter
      * @param bool $expand
@@ -40,7 +51,7 @@ class Query implements \JsonSerializable
      * @throws \ReflectionException
      */
     public function __construct(
-        protected EloquentBuilder $subject,
+        protected Builder $subject,
         protected bool            $select = true,
         protected bool            $filter = true,
         protected bool            $expand = true,
@@ -66,12 +77,12 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @param EloquentBuilder<Model>|string $subject
+     * @param Builder<TModelClass>|string $subject
      * @param Request|null $request
      * @return static
      * @throws \ReflectionException
      */
-    public static function for(EloquentBuilder|string $subject, ?Request $request = null): static
+    public static function for(Builder|string $subject, ?Request $request = null): static
     {
         $subject = is_subclass_of($subject, Model::class) ? $subject::query() : $subject;
         return new static($subject, request: $request);
@@ -118,11 +129,15 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @return Collection<int, Model>
+     * @return Collection<int, TModelClass>
      */
     public function get(): Collection
     {
-        return $this->subject->get();
+        try {
+            return $this->subject->get();
+        } catch (\Exception $e) {
+            abort(400);
+        }
     }
 
     /**

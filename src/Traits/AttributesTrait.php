@@ -29,6 +29,7 @@ trait AttributesTrait
 
     /**
      * @return void
+     * @throws \ReflectionException
      */
     protected function handleAttributes(): void
     {
@@ -52,19 +53,19 @@ trait AttributesTrait
             /** @var ODataProperty $instance */
             $instance = $attribute->newInstance();
 
-            if ($instance->getSelectable()) {
+            if ($instance->isSelectable()) {
                 $this->selectables[$shortName][] = $instance->getName();
             }
 
-            if ($instance->getFilterable()) {
+            if ($instance->isFilterable()) {
                 $this->filterables[$shortName][] = $instance->getName();
             }
 
-            if ($instance->getSearchable()) {
+            if ($instance->isSearchable()) {
                 $this->searchables[$shortName][] = $instance->getName();
             }
 
-            if ($instance->getOrderable()) {
+            if ($instance->isOrderable()) {
                 $this->orderables[$shortName][] = $instance->getName();
             }
         }
@@ -93,17 +94,7 @@ trait AttributesTrait
      */
     protected function isPropertySelectable(string $property, string|null $className = null): bool
     {
-        $className ??= $this->subjectModelReflectionClass->getShortName();
-        if (empty($this->filterables)) {
-            return true;
-        } else if (str_contains($property, '.')) {
-            [$className, $property] = array_slice(explode('.', $property), -2, 2);
-        }
-        $className = strtolower($className);
-        return
-            !isset($this->filterables[$className])
-            ||
-            in_array($property, $this->filterables[$className] ?? []);
+        return $this->isProperty($this->selectables, $property, $className);
     }
 
     /**
@@ -113,17 +104,7 @@ trait AttributesTrait
      */
     protected function isPropertyFilterable(string $property, string|null $className = null): bool
     {
-        $className ??= $this->subjectModelReflectionClass->getShortName();
-        if (empty($this->filterables)) {
-            return true;
-        } else if (str_contains($property, '.')) {
-            [$className, $property] = array_slice(explode('.', $property), -2, 2);
-        }
-        $className = strtolower($className);
-        return
-            !isset($this->filterables[$className])
-            ||
-            in_array($property, $this->filterables[$className] ?? []);
+        return $this->isProperty($this->filterables, $property, $className);
     }
 
     /**
@@ -133,17 +114,7 @@ trait AttributesTrait
      */
     protected function isPropertySearchable(string $property, string|null $className = null): bool
     {
-        $className ??= $this->subjectModelReflectionClass->getShortName();
-        if (empty($this->searchables)) {
-            return true;
-        } else if (str_contains($property, '.')) {
-            [$className, $property] = array_slice(explode('.', $property), -2, 2);
-        }
-        $className = strtolower($className);
-        return
-            !isset($this->searchables[$className])
-            ||
-            in_array($property, $this->searchables[$className] ?? []);
+        return $this->isProperty($this->searchables, $property, $className);
     }
 
     /**
@@ -153,17 +124,28 @@ trait AttributesTrait
      */
     protected function isPropertyOrderable(string $property, string|null $className = null): bool
     {
+        return $this->isProperty($this->orderables, $property, $className);
+    }
+
+    /**
+     * @param array<string, array<int, string>> $array
+     * @param string $property
+     * @param string|null $className
+     * @return bool
+     */
+    private function isProperty(array $array, string $property, string|null $className = null): bool
+    {
         $className ??= $this->subjectModelReflectionClass->getShortName();
-        if (empty($this->orderables)) {
+        if (empty($array)) {
             return true;
         } else if (str_contains($property, '.')) {
             [$className, $property] = array_slice(explode('.', $property), -2, 2);
         }
         $className = strtolower($className);
         return
-            !isset($this->orderables[$className])
+            !isset($array[$className])
             ||
-            in_array($property, $this->orderables[$className] ?? []);
+            in_array($property, $array[$className]);
     }
 
     /**
