@@ -163,4 +163,14 @@ trait AttributesTrait
         }
         return $this->expandables[strtolower(Str::singular($className))][strtolower($property)] ?? false;
     }
+
+    /**
+     * @param string|null $className
+     * @return array<int, string>|string[]
+     */
+    protected function getSearchables(string|null $className = null): array
+    {
+        $className ??= $this->subjectModelReflectionClass->getShortName();
+        return $this->searchables[strtolower($className)] ?? [];
+    }
 }

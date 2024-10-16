@@ -3,6 +3,7 @@
 namespace Aqqo\OData;
 
 use Aqqo\OData\Traits\AttributesTrait;
+use Aqqo\OData\Traits\SearchTrait;
 use Aqqo\OData\Traits\SelectTrait;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,6 +27,8 @@ class Query implements \JsonSerializable
     use FilterTrait;
     /** @use ExpandTrait<TModelClass, TRelatedModel> */
     use ExpandTrait;
+    /** @use SearchTrait<TModelClass, TRelatedModel> */
+    use SearchTrait;
     /** @use SkipTrait */
     use SkipTrait;
     /** @use TopTrait */
@@ -55,6 +58,7 @@ class Query implements \JsonSerializable
         protected bool            $select = true,
         protected bool            $filter = true,
         protected bool            $expand = true,
+        protected bool            $search = true,
         protected bool            $skip = true,
         protected bool            $top = true,
         protected ?Request        $request = null
@@ -70,6 +74,8 @@ class Query implements \JsonSerializable
         if ($filter) $this->addFilters();
 
         if ($expand) $this->addExpands();
+
+        if ($this->search) $this->addSearch();
 
         if ($skip) $this->addSkip();
 

@@ -13,7 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
-#[ODataProperty('name')]
+#[ODataProperty('name', searchable: true)]
+#[ODataProperty('description', searchable: true)]
 #[ODataProperty('test')]
 #[ODataProperty('start_datetime_utc')]
 #[ODataProperty('end_datetime_utc')]
