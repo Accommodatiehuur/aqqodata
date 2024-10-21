@@ -121,7 +121,30 @@ trait FilterTrait
                 continue;
             }
 
-            [$column, $operator, $value] = $this->splitInput($filterPart);
+            [$column, $operator, $value, $lambda, $relation] = $this->splitInput($filterPart);
+
+            if ($lambda) {
+                if ($expandable = $this->isPropertyExpandable($relation, $builder->getModel()->className)) {
+
+                    $modelClass = $builder->getModel()->$expandable()->getModel();
+
+                    $reflection = new ReflectionClass($modelClass);
+                    $shortName = $reflection->getShortName();
+
+                    if ($this->isPropertyFilterable($column, $shortName)) {
+                        if ($lambda == 'any') {
+                            $function = ($currentStatement == 'or') ? 'orWhereHas' : 'whereHas';
+                        } else {
+                            $function = ($currentStatement == 'or') ? 'orWhereDoesntHave' : 'whereDoesntHave';
+                        }
+
+                        $builder->{$function}($expandable, function ($query) use ($column, $operator, $value) {
+                            $query->where($column, $operator, $value);
+                        });
+                    }
+                }
+                continue;
+            }
 
             if (!$this->isValidFilter($column, $operator, $value, $builder)) {
                 continue;
@@ -245,7 +268,8 @@ trait FilterTrait
         // 4. Numeric values
         // 5. Field names or identifiers
         $pattern = '/\b(contains|startswith|endswith|and|or|not|eq|ne|gt|ge|lt|le)\b|([(),])|\'([^\']*)\'|(\d+(\.\d+)?)|([A-Za-z_][A-Za-z0-9_]*)/i';
-
+        $lambda = null;
+        $relation = null;
         // Perform global matching
         preg_match_all($pattern, $input, $matches, PREG_SET_ORDER);
 
@@ -277,6 +301,15 @@ trait FilterTrait
             $column = $tokens[2];
             $operator = OperatorUtils::mapOperator($tokens[0], $inverseOperator);
             $value = OperatorUtils::getValueBasedOnOperator($tokens[0], $tokens[4]);
+        } else if (isset($tokens[1]) && ($tokens[1] == 'any' || $tokens[1] == 'all')) {
+            if (!isset($tokens[6])) {
+                throw new \Exception('Invalid syntax');
+            }
+            $column = $tokens[5];
+            $operator = OperatorUtils::mapOperator($tokens[6], ($tokens[1] == 'all'));
+            $value = OperatorUtils::getValueBasedOnOperator($tokens[6], $tokens[7]);
+            $lambda = $tokens[1];
+            $relation = $tokens[0];
         } else {
             $column = $tokens[0];
             $operator = OperatorUtils::mapOperator($tokens[1], $inverseOperator);
@@ -286,7 +319,9 @@ trait FilterTrait
         return [
             $column,
             $operator,
-            $value
+            $value,
+            $lambda,
+            $relation
         ];
     }
 }
