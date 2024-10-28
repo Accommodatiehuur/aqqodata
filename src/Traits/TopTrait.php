@@ -17,7 +17,7 @@ trait TopTrait
         $default_top = Config::integer('odata.top.default', 100);
         $max_top = Config::integer('odata.top.max', 1000);
 
-        $top = $this->request?->input('$top', $default_top) ?? $default_top;
+        $top = $this->request?->integer('$top', $default_top) ?? $default_top;
         if (!is_integer($top)) {
             $top = $default_top;
         }
