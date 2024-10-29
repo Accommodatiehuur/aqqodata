@@ -53,20 +53,27 @@ trait AttributesTrait
             /** @var ODataProperty $instance */
             $instance = $attribute->newInstance();
 
+            $column = $instance->getSource() ?? $instance->getName();
+
+            // Support for dynamic resolver.
+            if (empty($instance->getSource()) && $reflectionClass->hasMethod('oData' . ucfirst($instance->getName()) . 'Resolver')) {
+                $column = $builder->getModel()->{'oData' . ucfirst($instance->getName()) . 'Resolver'}();
+            }
+
             if ($instance->isSelectable()) {
-                $this->selectables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
+                $this->selectables[$shortName][$instance->getName()] = $column;
             }
 
             if ($instance->isFilterable()) {
-                $this->filterables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
+                $this->filterables[$shortName][$instance->getName()] = $column;
             }
 
             if ($instance->isSearchable()) {
-                $this->searchables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
+                $this->searchables[$shortName][$instance->getName()] = $column;
             }
 
             if ($instance->isOrderable()) {
-                $this->orderables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
+                $this->orderables[$shortName][$instance->getName()] = $column;
             }
         }
 

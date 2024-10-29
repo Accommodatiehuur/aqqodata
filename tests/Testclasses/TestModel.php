@@ -15,7 +15,8 @@ use Illuminate\Support\Carbon;
 
 #[ODataProperty('name', searchable: true)]
 #[ODataProperty('description', searchable: true)]
-#[ODataProperty('column', source: 'source')]
+#[ODataProperty('column')]
+#[ODataProperty('difcolumn')]
 #[ODataProperty('test')]
 #[ODataProperty('start_datetime_utc')]
 #[ODataProperty('end_datetime_utc')]
@@ -24,6 +25,11 @@ class TestModel extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    public function oDataDifcolumnResolver()
+    {
+        return 'source';
+    }
 
     #[ODataRelationship(name: 'relatedModels')]
     public function relatedModels(): HasMany
