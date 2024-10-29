@@ -16,6 +16,7 @@ class ODataProperty
         protected bool    $filterable = true,
         protected bool    $searchable = false,
         protected bool    $orderable = true,
+        protected ?string $source = null // Source defines the database column. Might differ from name to have 'object_name' resolve as 'name'.
     )
     {
 
@@ -67,5 +68,10 @@ class ODataProperty
     public function isOrderable(): bool
     {
         return $this->orderable;
+    }
+
+    public function getSource(): ?string
+    {
+        return $this->source;
     }
 }

@@ -146,7 +146,7 @@ trait FilterTrait
                 continue;
             }
 
-            if (!$this->isValidFilter($column, $operator, $value, $builder)) {
+            if (!$column = $this->isValidFilter($column, $operator, $value, $builder)) {
                 continue;
             }
 
@@ -207,7 +207,7 @@ trait FilterTrait
      * @return bool
      * @throws \ReflectionException
      */
-    private function isValidFilter(string $column, string $operator, string $value, Builder $builder): bool
+    private function isValidFilter(string $column, string $operator, string $value, Builder $builder): string|bool
     {
         if (empty($column) || empty($operator) || empty($value)) {
             return false;

@@ -54,19 +54,19 @@ trait AttributesTrait
             $instance = $attribute->newInstance();
 
             if ($instance->isSelectable()) {
-                $this->selectables[$shortName][] = $instance->getName();
+                $this->selectables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
             }
 
             if ($instance->isFilterable()) {
-                $this->filterables[$shortName][] = $instance->getName();
+                $this->filterables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
             }
 
             if ($instance->isSearchable()) {
-                $this->searchables[$shortName][] = $instance->getName();
+                $this->searchables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
             }
 
             if ($instance->isOrderable()) {
-                $this->orderables[$shortName][] = $instance->getName();
+                $this->orderables[$shortName][$instance->getName()] = $instance->getSource() ?? $instance->getName();
             }
         }
 
@@ -90,9 +90,9 @@ trait AttributesTrait
     /**
      * @param string $property
      * @param string|null $className
-     * @return bool
+     * @return string|bool
      */
-    protected function isPropertySelectable(string $property, string|null $className = null): bool
+    protected function isPropertySelectable(string $property, string|null $className = null): string|bool
     {
         return $this->isProperty($this->selectables, $property, $className);
     }
@@ -100,9 +100,9 @@ trait AttributesTrait
     /**
      * @param string $property
      * @param string|null $className
-     * @return bool
+     * @return string|bool
      */
-    protected function isPropertyFilterable(string $property, string|null $className = null): bool
+    protected function isPropertyFilterable(string $property, string|null $className = null): string|bool
     {
         return $this->isProperty($this->filterables, $property, $className);
     }
@@ -128,12 +128,12 @@ trait AttributesTrait
     }
 
     /**
-     * @param array<string, array<int, string>> $array
+     * @param array $array
      * @param string $property
      * @param string|null $className
-     * @return bool
+     * @return string|bool
      */
-    private function isProperty(array $array, string $property, string|null $className = null): bool
+    private function isProperty(array $array, string $property, string|null $className = null): string|bool
     {
         $className ??= $this->subjectModelReflectionClass->getShortName();
         if (empty($array)) {
@@ -142,10 +142,7 @@ trait AttributesTrait
             [$className, $property] = array_slice(explode('.', $property), -2, 2);
         }
         $className = strtolower($className);
-        return
-            !isset($array[$className])
-            ||
-            in_array($property, $array[$className]);
+        return $array[$className][$property] ?? false;
     }
 
     /**

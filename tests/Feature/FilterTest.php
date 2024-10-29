@@ -8,6 +8,7 @@ it('Run filter', function (?string $filter, string $result) {
 })->with([
     "Without filters" => ["", "select * from `test_models` limit 100 offset 0"],
     "Simple name filter" => ["name eq 'Test' and test gt 12", "select * from `test_models` where `name` = 'Test' and `test` > '12' limit 100 offset 0"],
+    "Simple different source filter" => ["column eq 'Test'", "select * from `test_models` where `source` = 'Test' limit 100 offset 0"],
     "Simple contains filter" => ["contains(name, 'Test') and test gt 12", "select * from `test_models` where ((`name` LIKE '%Test%') and (`test` > '12')) limit 100 offset 0"],
     "Simple startswith filter" => ["startswith(name, 'Te') and test gt 12", "select * from `test_models` where ((`name` LIKE 'Te%') and (`test` > '12')) limit 100 offset 0"],
     "Simple endswith filter" => ["endswith(name, 'st') and test gt 12", "select * from `test_models` where ((`name` LIKE '%st') and (`test` > '12')) limit 100 offset 0"],

@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
 
 #[ODataProperty('name', searchable: true)]
 #[ODataProperty('description', searchable: true)]
+#[ODataProperty('column', source: 'source')]
 #[ODataProperty('test')]
 #[ODataProperty('start_datetime_utc')]
 #[ODataProperty('end_datetime_utc')]

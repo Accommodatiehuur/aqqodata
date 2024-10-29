@@ -40,8 +40,8 @@ trait SelectTrait
         if (!empty($select)) {
             $shortName = (new \ReflectionClass($builder->getModel()))->getShortName();
             foreach (explode(',', $select) as $item) {
-                if ($this->isPropertySelectable(trim($item), $shortName)) {
-                    $selects[] = trim($item);
+                if ($selectable = $this->isPropertySelectable(trim($item), $shortName)) {
+                    $selects[] = trim($selectable);
                 }
             }
         }
