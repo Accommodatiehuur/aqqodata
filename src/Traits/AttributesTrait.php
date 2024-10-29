@@ -57,7 +57,7 @@ trait AttributesTrait
             $odata_column = $instance->getName();
 
             // Support for dynamic resolver.
-            if (empty($instance->getSource()) && $reflectionClass->hasMethod('oData' . ucfirst($instance->getName()) . 'Resolver')) {
+            if (empty($instance->getSource()) && $reflectionClass->hasMethod('oData' . ucfirst(strtolower($instance->getName())) . 'Resolver')) {
                 $db_column = $builder->getModel()->{'oData' . ucfirst($instance->getName()) . 'Resolver'}();
             }
 

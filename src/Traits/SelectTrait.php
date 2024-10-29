@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrManyThrough;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * @template TModelClass of Model
@@ -80,11 +81,14 @@ trait SelectTrait
      * @return void
      * @throws \ReflectionException
      */
-    private function resolveToDefaultSelects(Builder $builder)
+    public function resolveToDefaultSelects(Builder|Relation $builder)
     {
         $selects = [];
-        foreach ($this->selectables[strtolower((new \ReflectionClass($builder->getModel()))->getShortName())] ?? [] as $db_column => $selectable_column) {
-            $selects[] = "{$selectable_column} AS {$db_column}";
+        $reflection = new \ReflectionClass($builder->getModel());
+        $table = $builder->getModel()->getTable();
+
+        foreach ($this->selectables[strtolower($reflection->getShortName())] ?? [] as $db_column => $selectable_column) {
+            $selects[] = "{$table}.{$selectable_column} AS {$db_column}";
         }
         if (!empty($selects)) {
             $builder->select($selects);

@@ -76,7 +76,9 @@ trait ExpandTrait
 
         if ($expandable) {
             $this->addSelectForExpand($this->subject, $expandable);
-            $this->subject->with($expandable);
+            $this->subject->with([$expandable => function ($builder) {
+                $this->resolveToDefaultSelects($builder);
+            }]);
         }
     }
 
@@ -104,12 +106,14 @@ trait ExpandTrait
         $parentBuilder->with($expandable, function (Relation $relationshipBuilder) use ($expandable, $details, $relation, $model) {
             $parsedDetails = StringUtils::getSortedDetails($details);
 
+            $selects_done = false;
             foreach ($parsedDetails as $detail) {
                 [$key, $value] = $this->parseDetail($detail);
 
                 switch ($key) {
                     case '$select':
                         $this->handleSelect($relationshipBuilder->getQuery(), $value, $expandable);
+                        $selects_done = true;
                         break;
 
                     case '$filter':
@@ -120,6 +124,10 @@ trait ExpandTrait
                         $this->handleNestedExpand($relationshipBuilder->getQuery(), $value, $relation, $model);
                         break;
                 }
+            }
+
+            if (!$selects_done) {
+                $this->resolveToDefaultSelects($relationshipBuilder);
             }
         });
     }
