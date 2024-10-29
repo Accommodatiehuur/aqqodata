@@ -15,9 +15,8 @@ use Illuminate\Support\Carbon;
 
 #[ODataProperty('name', searchable: true)]
 #[ODataProperty('description', searchable: true)]
-#[ODataProperty('column')]
-#[ODataProperty('difcolumn')]
 #[ODataProperty('test')]
+#[ODataProperty('odatacol', source: 'dbcol')]
 #[ODataProperty('start_datetime_utc')]
 #[ODataProperty('end_datetime_utc')]
 class TestModel extends Model

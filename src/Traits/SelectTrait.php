@@ -24,6 +24,8 @@ trait SelectTrait
 
         if (!empty($select)) {
             $this->appendSelectQuery($select, $this->subject);
+        } else {
+            $this->resolveToDefaultSelects($this->subject);
         }
     }
 
@@ -48,6 +50,8 @@ trait SelectTrait
 
         if (!empty($selects)) {
             $builder->select($selects);
+        } else {
+            $this->resolveToDefaultSelects($builder);
         }
     }
 
@@ -68,6 +72,22 @@ trait SelectTrait
             if ($relationshipBinding instanceof BelongsTo || $relationshipBinding instanceof BelongsToMany) {
                 // TODO
             }
+        }
+    }
+
+    /**
+     * @param Builder<TModelClass> $builder
+     * @return void
+     * @throws \ReflectionException
+     */
+    private function resolveToDefaultSelects(Builder $builder)
+    {
+        $selects = [];
+        foreach ($this->selectables[strtolower((new \ReflectionClass($builder->getModel()))->getShortName())] ?? [] as $db_column => $selectable_column) {
+            $selects[] = "{$selectable_column} AS {$db_column}";
+        }
+        if (!empty($selects)) {
+            $builder->select($selects);
         }
     }
 }

@@ -53,27 +53,28 @@ trait AttributesTrait
             /** @var ODataProperty $instance */
             $instance = $attribute->newInstance();
 
-            $column = $instance->getSource() ?? $instance->getName();
+            $db_column = $instance->getSource() ?? $instance->getName();
+            $odata_column = $instance->getName();
 
             // Support for dynamic resolver.
             if (empty($instance->getSource()) && $reflectionClass->hasMethod('oData' . ucfirst($instance->getName()) . 'Resolver')) {
-                $column = $builder->getModel()->{'oData' . ucfirst($instance->getName()) . 'Resolver'}();
+                $db_column = $builder->getModel()->{'oData' . ucfirst($instance->getName()) . 'Resolver'}();
             }
 
             if ($instance->isSelectable()) {
-                $this->selectables[$shortName][$instance->getName()] = $column;
+                $this->selectables[$shortName][$odata_column] = $db_column;
             }
 
             if ($instance->isFilterable()) {
-                $this->filterables[$shortName][$instance->getName()] = $column;
+                $this->filterables[$shortName][$odata_column] = $db_column;
             }
 
             if ($instance->isSearchable()) {
-                $this->searchables[$shortName][$instance->getName()] = $column;
+                $this->searchables[$shortName][$odata_column] = $db_column;
             }
 
             if ($instance->isOrderable()) {
-                $this->orderables[$shortName][$instance->getName()] = $column;
+                $this->orderables[$shortName][$odata_column] = $db_column;
             }
         }
 
