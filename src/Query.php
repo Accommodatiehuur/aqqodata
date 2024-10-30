@@ -162,17 +162,33 @@ class Query implements \JsonSerializable
      */
     private function resolveCollection(Collection $collection): Collection
     {
-        $collection->each(function (/** @var TModelClass $item */$item) {
-
-            $selectables = $this->selectables[ClassUtils::getShortName($item)];
+        $selected = null;
+        $collection->each(function ($item) use (&$selected) {
+            if ($selected === null) {
+                $selected = $this->selects[ClassUtils::getShortName($item)];
+            }
             $attributes = [];
-            foreach ($selectables as $odata_column => $db_column) {
+            foreach ($selected as $odata_column => $db_column) {
                 $attributes[$odata_column] = $item->{$db_column};
             }
             $item->setRawAttributes($attributes);
 
-//           $loaded_relations = $item->getRelations();
-        });
-    }
+            foreach ($item->getRelations() as $relation_collection) {
+                $selected_relation = null;
+                $relation_collection->each(function ($relation) use (&$selected_relation) {
+                    if ($selected_relation === null) {
+                        $selected_relation = $this->selects[ClassUtils::getShortName($relation)];
+                    }
 
+                    $attributes = [];
+                    foreach ($selected_relation as $odata_column => $db_column) {
+                        $attributes[$odata_column] = $relation->{$db_column};
+                    }
+                    $relation->setRawAttributes($attributes);
+                });
+
+            }
+        });
+        return $collection;
+    }
 }

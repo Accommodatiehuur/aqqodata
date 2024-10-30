@@ -16,7 +16,10 @@ use Illuminate\Database\Eloquent\Relations\Relation;
  */
 trait SelectTrait
 {
-    public $selects = [];
+    /**
+     * @var array<string, array<string,string>>
+     */
+    public array $selects = [];
 
     /**
      * @return void
@@ -44,8 +47,11 @@ trait SelectTrait
         $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
         if (!empty($select)) {
             foreach (explode(',', $select) as $item) {
-                if ($selectable = $this->isPropertySelectable(trim($item), $shortName)) {
-                    $this->selects[$shortName][] = trim($selectable);
+                if (is_string($item)) {
+                    $item = trim($item);
+                    if ($selectable = $this->isPropertySelectable($item, $shortName)) {
+                        $this->selects[$shortName][$item] = trim($selectable);
+                    }
                 }
             }
         }
@@ -84,7 +90,7 @@ trait SelectTrait
     {
         $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
         foreach ($this->selectables[$shortName] ?? [] as $db_column => $selectable_column) {
-            $this->selects[$shortName][] = $selectable_column;
+            $this->selects[$shortName][$db_column] = $selectable_column;
         }
     }
 }
