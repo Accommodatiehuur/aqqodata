@@ -5,6 +5,7 @@ namespace Aqqo\OData;
 use Aqqo\OData\Traits\AttributesTrait;
 use Aqqo\OData\Traits\SearchTrait;
 use Aqqo\OData\Traits\SelectTrait;
+use Aqqo\OData\Utils\ClassUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -140,7 +141,7 @@ class Query implements \JsonSerializable
     public function get(): Collection
     {
         try {
-            return $this->subject->get();
+            return $this->resolveCollection($this->subject->get());
         } catch (\Exception $e) {
             abort(400);
         }
@@ -153,4 +154,25 @@ class Query implements \JsonSerializable
     {
         return $this->getResponse();
     }
+
+    /**
+     * @param Collection<int, TModelClass> $collection
+     * @@return Collection<int, TModelClass>
+     * @return void
+     */
+    private function resolveCollection(Collection $collection): Collection
+    {
+        $collection->each(function (/** @var TModelClass $item */$item) {
+
+            $selectables = $this->selectables[ClassUtils::getShortName($item)];
+            $attributes = [];
+            foreach ($selectables as $odata_column => $db_column) {
+                $attributes[$odata_column] = $item->{$db_column};
+            }
+            $item->setRawAttributes($attributes);
+
+//           $loaded_relations = $item->getRelations();
+        });
+    }
+
 }

@@ -9,6 +9,7 @@ class ODataRelationship
     public function __construct(
         private string $name,
         private ?string $description = null,
+        private ?String $source = null
     )
     {
     }
@@ -21,5 +22,10 @@ class ODataRelationship
     public function getDescription(): ?string
     {
         return $this->description;
+    }
+
+    public function getSource(): ?string
+    {
+        return $this->source;
     }
 }

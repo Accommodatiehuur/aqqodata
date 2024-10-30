@@ -83,7 +83,7 @@ trait AttributesTrait
             $relationshipInstance = $reflectionAttributes ? Arr::first($reflectionAttributes)?->newInstance() : null;
             if ($relationshipInstance) {
                 /** @var ODataRelationship $relationshipInstance */
-                $this->expandables[$shortName][strtolower($relationshipInstance->getName())] = $reflectionMethod->getName();
+                $this->expandables[$shortName][strtolower($relationshipInstance->getName())] = $relationshipInstance->getSource() ?? $reflectionMethod->getName();
 
                 $model = $builder->getModel()->{$reflectionMethod->getName()}()->getModel();
                 $reflection = new \ReflectionClass($model);

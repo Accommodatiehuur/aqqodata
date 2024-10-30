@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\Relation;
  */
 trait SelectTrait
 {
+    public $selects = [];
+
     /**
      * @return void
      */
@@ -39,19 +41,16 @@ trait SelectTrait
      */
     public function appendSelectQuery(string $select, Builder $builder): void
     {
-        $selects = [];
+        $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
         if (!empty($select)) {
-            $shortName = (new \ReflectionClass($builder->getModel()))->getShortName();
             foreach (explode(',', $select) as $item) {
                 if ($selectable = $this->isPropertySelectable(trim($item), $shortName)) {
-                    $selects[] = trim($selectable);
+                    $this->selects[$shortName][] = trim($selectable);
                 }
             }
         }
 
-        if (!empty($selects)) {
-            $builder->select($selects);
-        } else {
+        if (empty($this->selects[$shortName])) {
             $this->resolveToDefaultSelects($builder);
         }
     }
@@ -83,15 +82,9 @@ trait SelectTrait
      */
     public function resolveToDefaultSelects(Builder|Relation $builder)
     {
-        $selects = [];
-        $reflection = new \ReflectionClass($builder->getModel());
-        $table = $builder->getModel()->getTable();
-
-        foreach ($this->selectables[strtolower($reflection->getShortName())] ?? [] as $db_column => $selectable_column) {
-            $selects[] = "{$table}.{$selectable_column} AS {$db_column}";
-        }
-        if (!empty($selects)) {
-            $builder->select($selects);
+        $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
+        foreach ($this->selectables[$shortName] ?? [] as $db_column => $selectable_column) {
+            $this->selects[$shortName][] = $selectable_column;
         }
     }
 }
