@@ -103,7 +103,7 @@ trait ExpandTrait
 
         $this->addSelectForExpand($parentBuilder, $expandable);
 
-        $parentBuilder->with($expandable, function (Relation $relationshipBuilder) use ($expandable, $details, $relation, $model) {
+        $parentBuilder->with($expandable, function (Relation $relationshipBuilder) use ($expandable, $details, $relation, $model, $parentBuilder) {
             $parsedDetails = StringUtils::getSortedDetails($details);
 
             $selects_done = false;
@@ -195,8 +195,8 @@ trait ExpandTrait
             $nestedExpandable = $this->isPropertyExpandable($value, (new ReflectionClass($model))->getShortName());
 
             if ($nestedExpandable) {
-                $this->addSelectForExpand($relationshipBuilder, $nestedExpandable);
-                $relationshipBuilder->with("{$parentRelation}.{$nestedExpandable}");
+                $relationshipBuilder->with("{$nestedExpandable}");
+                $this->resolveToDefaultSelects($relationshipBuilder);
             }
         }
     }

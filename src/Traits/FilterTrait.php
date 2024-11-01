@@ -24,7 +24,12 @@ trait FilterTrait
         $filter = $this->request?->input('$filter');
 
         if (empty($filter)) {
-            return;
+            preg_match('/\(([^)]+)\)/', $this->request->url(), $matches);
+            if (!empty($matches[1])) {
+                $filter = "{$this->subject->getModel()->getKeyName()} eq '{$matches[1]}'";
+            } else {
+                return;
+            }
         }
 
         $this->appendFilterQuery(strval($filter), $this->subject);

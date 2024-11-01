@@ -155,15 +155,10 @@ class Query implements \JsonSerializable
         return $this->getResponse();
     }
 
-    /**
-     * @param Collection<int, TModelClass> $collection
-     * @@return Collection<int, TModelClass>
-     * @return void
-     */
     private function resolveCollection(Collection $collection): Collection
     {
         $selected = null;
-        $collection->each(function ($item) use (&$selected) {
+        $collection->transform(function ($item) use (&$selected) {
             if ($selected === null) {
                 $selected = $this->selects[ClassUtils::getShortName($item)];
             }
@@ -172,22 +167,16 @@ class Query implements \JsonSerializable
                 $attributes[$odata_column] = $item->{$db_column};
             }
             $item->setRawAttributes($attributes);
-
-            foreach ($item->getRelations() as $relation_collection) {
-                $selected_relation = null;
-                $relation_collection->each(function ($relation) use (&$selected_relation) {
-                    if ($selected_relation === null) {
-                        $selected_relation = $this->selects[ClassUtils::getShortName($relation)];
+            foreach ($item->getRelations() as $key => $relation) {
+                if ($relation instanceof Collection) {
+                    $attributes[$key] = $this->resolveCollection($relation);
+                } else {
+                    foreach ($this->selects[ClassUtils::getShortName($relation)] as $odata_column => $db_column) {
+                        $attributes[$key][$odata_column] = $relation->{$db_column};
                     }
-
-                    $attributes = [];
-                    foreach ($selected_relation as $odata_column => $db_column) {
-                        $attributes[$odata_column] = $relation->{$db_column};
-                    }
-                    $relation->setRawAttributes($attributes);
-                });
-
+                }
             }
+            return $attributes;
         });
         return $collection;
     }
