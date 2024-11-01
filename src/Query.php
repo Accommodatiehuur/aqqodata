@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData;
 
+use Aqqo\OData\Exceptions\QueryException;
 use Aqqo\OData\Traits\AttributesTrait;
 use Aqqo\OData\Traits\SearchTrait;
 use Aqqo\OData\Traits\SelectTrait;
@@ -137,13 +138,14 @@ class Query implements \JsonSerializable
 
     /**
      * @return Collection<string, array<string,mixed>>
+     * @throws QueryException
      */
     public function get(): Collection
     {
         try {
             return $this->resolveCollection($this->subject->get());
         } catch (\Exception $e) {
-            abort(400);
+            throw new QueryException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
