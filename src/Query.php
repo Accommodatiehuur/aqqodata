@@ -136,7 +136,7 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @return Collection<int, TModelClass>
+     * @return Collection<string, array<string,mixed>>
      */
     public function get(): Collection
     {
@@ -155,10 +155,14 @@ class Query implements \JsonSerializable
         return $this->getResponse();
     }
 
+    /**
+     * @param Collection<int, TModelClass> $collection
+     * @return Collection<string, array<string,mixed>>
+     */
     private function resolveCollection(Collection $collection): Collection
     {
         $selected = null;
-        $collection->transform(function ($item) use (&$selected) {
+        $collection->transform(function (Model $item) use (&$selected) {
             if ($selected === null) {
                 $selected = $this->selects[ClassUtils::getShortName($item)];
             }

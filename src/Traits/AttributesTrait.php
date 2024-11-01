@@ -12,16 +12,16 @@ use Illuminate\Support\Str;
 
 trait AttributesTrait
 {
-    /** @var array<string, array<int, string>> */
+    /** @var array<string, array<string, string>> */
     private $selectables = [];
 
-    /** @var array<string, array<int, string>> */
+    /** @var array<string, array<string, string>> */
     private $filterables = [];
 
-    /** @var array<string, array<int, string>> */
+    /** @var array<string, array<string, string>> */
     private $searchables = [];
 
-    /** @var array<string, array<int, string>> */
+    /** @var array<string, array<string, string>> */
     private $orderables = [];
 
     /** @var array<string, array<string, string>> */
@@ -120,7 +120,7 @@ trait AttributesTrait
      * @param string|null $className
      * @return bool
      */
-    protected function isPropertySearchable(string $property, string|null $className = null): bool
+    protected function isPropertySearchable(string $property, string|null $className = null): string|bool
     {
         return $this->isProperty($this->searchables, $property, $className);
     }
@@ -130,13 +130,13 @@ trait AttributesTrait
      * @param string|null $className
      * @return bool
      */
-    protected function isPropertyOrderable(string $property, string|null $className = null): bool
+    protected function isPropertyOrderable(string $property, string|null $className = null): string|bool
     {
         return $this->isProperty($this->orderables, $property, $className);
     }
 
     /**
-     * @param array $array
+     * @param array<string, array<string, string>> $array
      * @param string $property
      * @param string|null $className
      * @return string|bool

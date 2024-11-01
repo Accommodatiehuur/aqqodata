@@ -76,7 +76,7 @@ trait ExpandTrait
 
         if ($expandable) {
             $this->addSelectForExpand($this->subject, $expandable);
-            $this->subject->with([$expandable => function ($builder) use ($expand) {
+            $this->subject->with([$expandable => function ($builder) {
                 $this->resolveToDefaultSelects($builder);
             }]);
         }
@@ -103,7 +103,7 @@ trait ExpandTrait
 
         $this->addSelectForExpand($parentBuilder, $expandable);
 
-        $parentBuilder->with($expandable, function (Relation $relationshipBuilder) use ($expandable, $details, $relation, $model, $parentBuilder) {
+        $parentBuilder->with($expandable, function (Relation $relationshipBuilder) use ($expandable, $details, $relation, $model) {
             $parsedDetails = StringUtils::getSortedDetails($details);
 
             $selects_done = false;

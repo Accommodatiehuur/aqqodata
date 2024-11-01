@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Query;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 /**
  * @template TModelClass of Model
  * @template TRelatedModel of Model
+ *
  */
 trait SelectTrait
 {
@@ -49,7 +51,7 @@ trait SelectTrait
             foreach (explode(',', $select) as $item) {
                 if (is_string($item)) {
                     $item = trim($item);
-                    if ($selectable = $this->isPropertySelectable($item, $shortName)) {
+                    if (($selectable = $this->isPropertySelectable($item, $shortName)) && is_string($selectable)) {
                         $this->selects[$shortName][$item] = trim($selectable);
                     }
                 }
@@ -82,11 +84,11 @@ trait SelectTrait
     }
 
     /**
-     * @param Builder<TModelClass> $builder
+     * @param Builder<TModelClass>|Relation<TModelClass> $builder
      * @return void
      * @throws \ReflectionException
      */
-    public function resolveToDefaultSelects(Builder|Relation $builder)
+    public function resolveToDefaultSelects(Builder|Relation $builder): void
     {
         $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
         foreach ($this->selectables[$shortName] ?? [] as $db_column => $selectable_column) {

@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Utils\ClassUtils;
 use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +25,7 @@ trait FilterTrait
         $filter = $this->request?->input('$filter');
 
         if (empty($filter)) {
-            preg_match('/\(([^)]+)\)/', $this->request->url(), $matches);
+            preg_match('/\(([^)]+)\)/', $this->request?->url() ?? '', $matches);
             if (!empty($matches[1])) {
                 $filter = "{$this->subject->getModel()->getKeyName()} eq '{$matches[1]}'";
             } else {
@@ -129,7 +130,7 @@ trait FilterTrait
             [$column, $operator, $value, $lambda, $relation] = $this->splitInput($filterPart);
 
             if ($lambda) {
-                if ($expandable = $this->isPropertyExpandable($relation, $builder->getModel()->className)) {
+                if ($expandable = $this->isPropertyExpandable($relation, ClassUtils::getShortName($builder->getModel()))) {
 
                     $modelClass = $builder->getModel()->$expandable()->getModel();
 
@@ -263,6 +264,7 @@ trait FilterTrait
      * @param string $input
      * @param bool $inverseOperator
      * @return array<int, string>
+     * @throws \Exception
      */
     private function splitInput(string $input, bool $inverseOperator = false): array
     {
@@ -322,11 +324,11 @@ trait FilterTrait
         }
 
         return [
-            $column,
+            $column ?? '',
             $operator,
             $value,
-            $lambda,
-            $relation
+            $lambda ?? '',
+            $relation ?? ''
         ];
     }
 }
