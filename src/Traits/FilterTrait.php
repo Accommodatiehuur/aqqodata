@@ -7,7 +7,6 @@ use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use ReflectionClass;
 
 /**
@@ -25,7 +24,7 @@ trait FilterTrait
         $filter = $this->request?->input('$filter');
 
         if (empty($filter)) {
-            preg_match('/\(([^)]+)\)/', $this->request?->url() ?? '', $matches);
+            preg_match('/\(([^)]+)\)/', $this->request->url(), $matches);
             if (!empty($matches[1])) {
                 $filter = "{$this->subject->getModel()->getKeyName()} eq '{$matches[1]}'";
             } else {
@@ -131,23 +130,19 @@ trait FilterTrait
 
             if ($lambda) {
                 if ($expandable = $this->isPropertyExpandable($relation, ClassUtils::getShortName($builder->getModel()))) {
+                    if ($lambda == 'any') {
+                        $function = ($currentStatement == 'or') ? 'orWhereHas' : 'whereHas';
+                    } else {
+                        $function = ($currentStatement == 'or') ? 'orWhereDoesntHave' : 'whereDoesntHave';
+                    }
 
-                    $modelClass = $builder->getModel()->$expandable()->getModel();
+                    $builder->{$function}($expandable, function ($query) use ($column, $operator, $value) {
 
-                    $reflection = new ReflectionClass($modelClass);
-                    $shortName = $reflection->getShortName();
-
-                    if ($this->isPropertyFilterable($column, $shortName)) {
-                        if ($lambda == 'any') {
-                            $function = ($currentStatement == 'or') ? 'orWhereHas' : 'whereHas';
-                        } else {
-                            $function = ($currentStatement == 'or') ? 'orWhereDoesntHave' : 'whereDoesntHave';
+                        if ($column = $this->isValidFilter($column, $operator, $value, $query)) {
+                            $query->where($column, $operator, $value);
                         }
 
-                        $builder->{$function}($expandable, function ($query) use ($column, $operator, $value) {
-                            $query->where($column, $operator, $value);
-                        });
-                    }
+                    });
                 }
                 continue;
             }
@@ -264,7 +259,6 @@ trait FilterTrait
      * @param string $input
      * @param bool $inverseOperator
      * @return array<int, string>
-     * @throws \Exception
      */
     private function splitInput(string $input, bool $inverseOperator = false): array
     {
@@ -324,11 +318,11 @@ trait FilterTrait
         }
 
         return [
-            $column ?? '',
+            $column,
             $operator,
             $value,
-            $lambda ?? '',
-            $relation ?? ''
+            $lambda,
+            $relation
         ];
     }
 }
