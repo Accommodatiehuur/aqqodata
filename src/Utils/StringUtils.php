@@ -86,37 +86,81 @@ class StringUtils
      */
     public static function getSortedDetails(string $details): array
     {
-        // Split by semicolons not within parentheses
-        $parts = preg_split('/;(?![^()]*\))/', $details);
+        // Initialize variables for splitting
+        $parts = [];
+        $current = '';
+        $parentheses = 0;
+        $length = strlen($details);
 
-        if ($parts === false) {
-            return [];
-        }
+        // Iterate over each character to split by semicolons not within parentheses
+        for ($i = 0; $i < $length; $i++) {
+            $char = $details[$i];
 
-        // Define the desired order of details
-        $order = [
-            '$select' => 1,
-            '$expand' => 2,
-            '$filter' => 3,
-        ];
-
-        // Initialize an associative array to store sorted details
-        $sorted = [];
-
-        foreach ($parts as $part) {
-            $part = trim($part);
-            foreach ($order as $key => $priority) {
-                if (Str::startsWith($part, $key)) {
-                    $sorted[$priority] = $part;
-                    break;
+            if ($char === '(') {
+                $parentheses++;
+            } elseif ($char === ')') {
+                if ($parentheses > 0) {
+                    $parentheses--;
                 }
+            }
+
+            if ($char === ';' && $parentheses === 0) {
+                $parts[] = trim($current);
+                $current = '';
+            } else {
+                $current .= $char;
             }
         }
 
-        // Sort the details based on the defined priority
-        ksort($sorted);
+        // Add the last part if not empty
+        if (trim($current) !== '') {
+            $parts[] = trim($current);
+        }
 
-        // Return the sorted details as a numerically indexed array
-        return array_values($sorted);
+        // Define the desired order of details using an indexed array for flexibility
+        $order = [
+            '$select',
+            '$expand',
+            '$filter',
+        ];
+
+        // Assign priorities based on the order array
+        $priorityMap = [];
+        foreach ($order as $index => $key) {
+            $priorityMap[$key] = $index + 1; // Start priorities at 1
+        }
+        $defaultPriority = count($order) + 1;
+
+        // Group parts by their priority
+        $grouped = [];
+
+        foreach ($parts as $part) {
+            $found = false;
+            foreach ($priorityMap as $key => $priority) {
+                if (strpos($part, $key) === 0) { // More efficient than Str::startsWith
+                    $grouped[$priority][] = $part;
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                // Assign default priority to unknown keys
+                $grouped[$defaultPriority][] = $part;
+            }
+        }
+
+        // Sort the grouped parts by priority
+        ksort($grouped);
+
+        // Flatten the grouped parts into a single array
+        $sorted = [];
+        foreach ($grouped as $priority => $items) {
+            foreach ($items as $item) {
+                $sorted[] = $item;
+            }
+        }
+
+        return $sorted;
     }
+
 }
