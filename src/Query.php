@@ -158,13 +158,17 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @param Collection<int, TModelClass> $collection
+     * @param Collection<int, TModelClass|array> $collection
      * @return Collection<string, array<string,mixed>>
      */
     private function resolveCollection(Collection $collection): Collection
     {
         $collection->transform(function ($item) {
-            return $this->resolveModel($item);
+            if (is_array($item)) {
+                return $item;
+            } else {
+                return $this->resolveModel($item);
+            }
         });
         return $collection;
     }
