@@ -192,12 +192,14 @@ trait ExpandTrait
                 $this->handleExpandDetails($relationshipBuilder, $nestedDetails, $fullRelation);
             }
         } else {
-            $nestedExpandable = $this->isPropertyExpandable($value, (new ReflectionClass($model))->getShortName());
+            foreach (explode(',', $value) as $relation) {
+                $nestedExpandable = $this->isPropertyExpandable($relation, (new ReflectionClass($model))->getShortName());
 
-            if ($nestedExpandable) {
-                $relationshipBuilder->with([$nestedExpandable => function ($builder) {
-                    $this->resolveToDefaultSelects($builder);
-                }]);
+                if ($nestedExpandable) {
+                    $relationshipBuilder->with([$nestedExpandable => function ($builder) {
+                        $this->resolveToDefaultSelects($builder);
+                    }]);
+                }
             }
         }
     }
