@@ -2,11 +2,11 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Utils\ClassUtils;
 use Aqqo\OData\Utils\OperatorUtils;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use ReflectionClass;
 
 /**
@@ -24,7 +24,12 @@ trait FilterTrait
         $filter = $this->request?->input('$filter');
 
         if (empty($filter)) {
-            return;
+            preg_match('/\(([^)]+)\)/', $this->request->url(), $matches);
+            if (!empty($matches[1])) {
+                $filter = "{$this->subject->getModel()->getKeyName()} eq '{$matches[1]}'";
+            } else {
+                return;
+            }
         }
 
         $this->appendFilterQuery(strval($filter), $this->subject);
@@ -124,24 +129,20 @@ trait FilterTrait
             [$column, $operator, $value, $lambda, $relation] = $this->splitInput($filterPart);
 
             if ($lambda) {
-                if ($expandable = $this->isPropertyExpandable($relation, $builder->getModel()->className)) {
+                if ($expandable = $this->isPropertyExpandable($relation, ClassUtils::getShortName($builder->getModel()))) {
+                    if ($lambda == 'any') {
+                        $function = ($currentStatement == 'or') ? 'orWhereHas' : 'whereHas';
+                    } else {
+                        $function = ($currentStatement == 'or') ? 'orWhereDoesntHave' : 'whereDoesntHave';
+                    }
 
-                    $modelClass = $builder->getModel()->$expandable()->getModel();
+                    $builder->{$function}($expandable, function ($query) use ($column, $operator, $value) {
 
-                    $reflection = new ReflectionClass($modelClass);
-                    $shortName = $reflection->getShortName();
-
-                    if ($this->isPropertyFilterable($column, $shortName)) {
-                        if ($lambda == 'any') {
-                            $function = ($currentStatement == 'or') ? 'orWhereHas' : 'whereHas';
-                        } else {
-                            $function = ($currentStatement == 'or') ? 'orWhereDoesntHave' : 'whereDoesntHave';
+                        if ($column = $this->isValidFilter($column, $operator, $value, $query)) {
+                            $query->where($column, $operator, $value);
                         }
 
-                        $builder->{$function}($expandable, function ($query) use ($column, $operator, $value) {
-                            $query->where($column, $operator, $value);
-                        });
-                    }
+                    });
                 }
                 continue;
             }

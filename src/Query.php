@@ -2,9 +2,11 @@
 
 namespace Aqqo\OData;
 
+use Aqqo\OData\Exceptions\QueryException;
 use Aqqo\OData\Traits\AttributesTrait;
 use Aqqo\OData\Traits\SearchTrait;
 use Aqqo\OData\Traits\SelectTrait;
+use Aqqo\OData\Utils\ClassUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -135,14 +137,15 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @return Collection<int, TModelClass>
+     * @return Collection<string, array<string,mixed>>
+     * @throws QueryException
      */
     public function get(): Collection
     {
         try {
-            return $this->subject->get();
+            return $this->resolveCollection($this->subject->get());
         } catch (\Exception $e) {
-            abort(400);
+            throw new QueryException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -152,5 +155,35 @@ class Query implements \JsonSerializable
     public function jsonSerialize(): mixed
     {
         return $this->getResponse();
+    }
+
+    /**
+     * @param Collection<int, TModelClass> $collection
+     * @return Collection<string, array<string,mixed>>
+     */
+    private function resolveCollection(Collection $collection): Collection
+    {
+        $selected = null;
+        $collection->transform(function (Model $item) use (&$selected) {
+            if ($selected === null) {
+                $selected = $this->selects[ClassUtils::getShortName($item)];
+            }
+            $attributes = [];
+            foreach ($selected as $odata_column => $db_column) {
+                $attributes[$odata_column] = $item->{$db_column};
+            }
+            $item->setRawAttributes($attributes);
+            foreach ($item->getRelations() as $key => $relation) {
+                if ($relation instanceof Collection) {
+                    $attributes[$key] = $this->resolveCollection($relation);
+                } else {
+                    foreach ($this->selects[ClassUtils::getShortName($relation)] as $odata_column => $db_column) {
+                        $attributes[$key][$odata_column] = $relation->{$db_column};
+                    }
+                }
+            }
+            return $attributes;
+        });
+        return $collection;
     }
 }

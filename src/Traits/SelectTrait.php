@@ -2,6 +2,7 @@
 
 namespace Aqqo\OData\Traits;
 
+use Aqqo\OData\Query;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,9 +14,15 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 /**
  * @template TModelClass of Model
  * @template TRelatedModel of Model
+ *
  */
 trait SelectTrait
 {
+    /**
+     * @var array<string, array<string,string>>
+     */
+    public array $selects = [];
+
     /**
      * @return void
      */
@@ -39,19 +46,19 @@ trait SelectTrait
      */
     public function appendSelectQuery(string $select, Builder $builder): void
     {
-        $selects = [];
+        $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
         if (!empty($select)) {
-            $shortName = (new \ReflectionClass($builder->getModel()))->getShortName();
             foreach (explode(',', $select) as $item) {
-                if ($selectable = $this->isPropertySelectable(trim($item), $shortName)) {
-                    $selects[] = trim($selectable);
+                if (is_string($item)) {
+                    $item = trim($item);
+                    if (($selectable = $this->isPropertySelectable($item, $shortName)) && is_string($selectable)) {
+                        $this->selects[$shortName][$item] = trim($selectable);
+                    }
                 }
             }
         }
 
-        if (!empty($selects)) {
-            $builder->select($selects);
-        } else {
+        if (empty($this->selects[$shortName])) {
             $this->resolveToDefaultSelects($builder);
         }
     }
@@ -77,21 +84,15 @@ trait SelectTrait
     }
 
     /**
-     * @param Builder<TModelClass> $builder
+     * @param Builder<TModelClass>|Relation<TModelClass> $builder
      * @return void
      * @throws \ReflectionException
      */
-    public function resolveToDefaultSelects(Builder|Relation $builder)
+    public function resolveToDefaultSelects(Builder|Relation $builder): void
     {
-        $selects = [];
-        $reflection = new \ReflectionClass($builder->getModel());
-        $table = $builder->getModel()->getTable();
-
-        foreach ($this->selectables[strtolower($reflection->getShortName())] ?? [] as $db_column => $selectable_column) {
-            $selects[] = "{$table}.{$selectable_column} AS {$db_column}";
-        }
-        if (!empty($selects)) {
-            $builder->select($selects);
+        $shortName = strtolower((new \ReflectionClass($builder->getModel()))->getShortName());
+        foreach ($this->selectables[$shortName] ?? [] as $db_column => $selectable_column) {
+            $this->selects[$shortName][$db_column] = $selectable_column;
         }
     }
 }

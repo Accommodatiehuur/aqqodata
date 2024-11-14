@@ -195,8 +195,9 @@ trait ExpandTrait
             $nestedExpandable = $this->isPropertyExpandable($value, (new ReflectionClass($model))->getShortName());
 
             if ($nestedExpandable) {
-                $this->addSelectForExpand($relationshipBuilder, $nestedExpandable);
-                $relationshipBuilder->with("{$parentRelation}.{$nestedExpandable}");
+                $relationshipBuilder->with([$nestedExpandable => function ($builder) {
+                    $this->resolveToDefaultSelects($builder);
+                }]);
             }
         }
     }
