@@ -163,27 +163,30 @@ class Query implements \JsonSerializable
      */
     private function resolveCollection(Collection $collection): Collection
     {
-        $selected = null;
-        $collection->transform(function (Model $item) use (&$selected) {
-            if ($selected === null) {
-                $selected = $this->selects[ClassUtils::getShortName($item)];
-            }
-            $attributes = [];
-            foreach ($selected as $odata_column => $db_column) {
-                $attributes[$odata_column] = $item->{$db_column};
-            }
-            $item->setRawAttributes($attributes);
-            foreach ($item->getRelations() as $key => $relation) {
-                if ($relation instanceof Collection) {
-                    $attributes[$key] = $this->resolveCollection($relation);
-                } else {
-                    foreach ($this->selects[ClassUtils::getShortName($relation)] as $odata_column => $db_column) {
-                        $attributes[$key][$odata_column] = $relation->{$db_column};
-                    }
-                }
-            }
-            return $attributes;
+        $collection->transform(function ($item) {
+            return $this->resolveModel($item);
         });
         return $collection;
+    }
+
+    /**
+     * @param Model $item
+     * @return array<string, mixed>
+     */
+    private function resolveModel(Model &$item): array
+    {
+        $attributes = [];
+        foreach ($this->selects[ClassUtils::getShortName($item)] as $odata_column => $db_column) {
+            $attributes[$odata_column] = $item->{$db_column};
+        }
+        $item->setRawAttributes($attributes);
+        foreach ($item->getRelations() as $key => $relation) {
+            if ($relation instanceof Collection) {
+                $attributes[$key] = $this->resolveCollection($relation);
+            } else if ($relation instanceof Model)  {
+                $attributes[$key] = $this->resolveModel($relation);
+            }
+        }
+        return $attributes;
     }
 }
