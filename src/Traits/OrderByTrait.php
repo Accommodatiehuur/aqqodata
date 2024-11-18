@@ -20,6 +20,12 @@ trait OrderByTrait
         }
     }
 
+    /**
+    * @param string $orderby
+    * @param Builder $builder
+    *
+    * @return void
+    */
     public function appendOrderBy(string $orderby, Builder $builder): void
     {
         foreach (explode(',', $orderby) as $order) {
