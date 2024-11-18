@@ -123,6 +123,10 @@ trait ExpandTrait
                     case '$expand':
                         $this->handleNestedExpand($relationshipBuilder->getQuery(), $value, $relation, $model);
                         break;
+
+                    case '$orderby':
+                        $this->handleOrderBy($relationshipBuilder->getQuery(), $value);
+                        break;
                 }
             }
 
@@ -202,6 +206,11 @@ trait ExpandTrait
                 }
             }
         }
+    }
+
+    private function handleOrderBy(Builder $relationshipBuilder, string $value): void
+    {
+        $this->appendOrderBy($value, $relationshipBuilder);
     }
 
     /**
