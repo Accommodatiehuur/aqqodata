@@ -7,7 +7,7 @@ trait CountTrait
     protected bool $add_count = false;
 
     /**
-     * Apply the $top query parameter constraint to the query.
+     * Apply the $count query parameter to the response.
      *
      * @return void
      */
