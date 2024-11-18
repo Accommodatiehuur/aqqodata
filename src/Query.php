@@ -38,7 +38,7 @@ class Query implements \JsonSerializable
     use TopTrait;
     /** @use ResponseTrait */
     use ResponseTrait;
-    /** @use OrderByTrait */
+    /** @use OrderByTrait<TModelClass, TRelatedModel> */
     use OrderByTrait;
     /** @use AttributesTrait */
     use AttributesTrait;

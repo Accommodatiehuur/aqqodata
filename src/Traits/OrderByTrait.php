@@ -2,8 +2,12 @@
 
 namespace Aqqo\OData\Traits;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 
+/**
+ * @template TModelClass of Model
+ */
 trait OrderByTrait
 {
     /**
@@ -22,7 +26,7 @@ trait OrderByTrait
 
     /**
     * @param string $orderby
-    * @param Builder $builder
+    * @param Builder<TModelClass> $builder
     *
     * @return void
     */
