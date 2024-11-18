@@ -4,6 +4,7 @@ namespace Aqqo\OData;
 
 use Aqqo\OData\Exceptions\QueryException;
 use Aqqo\OData\Traits\AttributesTrait;
+use Aqqo\OData\Traits\CountTrait;
 use Aqqo\OData\Traits\SearchTrait;
 use Aqqo\OData\Traits\SelectTrait;
 use Aqqo\OData\Utils\ClassUtils;
@@ -35,6 +36,8 @@ class Query implements \JsonSerializable
     use SkipTrait;
     /** @use TopTrait */
     use TopTrait;
+    /** @use CountTrait */
+    use CountTrait;
     /** @use ResponseTrait */
     use ResponseTrait;
     /** @use AttributesTrait */
@@ -52,6 +55,7 @@ class Query implements \JsonSerializable
      * @param bool $expand
      * @param bool $skip
      * @param bool $top
+     * @param bool $count
      * @param Request|null $request
      * @throws \ReflectionException
      */
@@ -63,6 +67,7 @@ class Query implements \JsonSerializable
         protected bool            $search = true,
         protected bool            $skip = true,
         protected bool            $top = true,
+        protected bool            $count = true,
         protected ?Request        $request = null
     )
     {
@@ -82,6 +87,8 @@ class Query implements \JsonSerializable
         if ($skip) $this->addSkip();
 
         if ($top) $this->addTop();
+
+        if ($count) $this->addCount();
     }
 
     /**

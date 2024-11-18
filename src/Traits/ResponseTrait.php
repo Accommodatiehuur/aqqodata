@@ -21,9 +21,13 @@ trait ResponseTrait
         }
 
         $response = [
-            "@context" => $_SERVER['HTTP_HOST'] . 'api/$metadata#' . $this->subject->getModel()->getTable(), // TODO decide whether we want to support $metadata endpoint
+            "@context" => $_SERVER['HTTP_HOST'] ?? "" . 'api/$metadata#' . $this->subject->getModel()->getTable(), // TODO decide whether we want to support $metadata endpoint
             "value" => $value
         ];
+
+        if ($this->add_count) {
+            $response['@count'] = $all_records_count;
+        }
 
         if ($all_records_count > ($count + ($this->subject->getQuery()->offset ?? 0))) {
             $uri = $_SERVER['REQUEST_URI'];
