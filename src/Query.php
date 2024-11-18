@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Aqqo\OData\Traits\ExpandTrait;
 use Aqqo\OData\Traits\FilterTrait;
+use Aqqo\OData\Traits\OrderByTrait;
 use Aqqo\OData\Traits\SkipTrait;
 use Aqqo\OData\Traits\TopTrait;
 use Aqqo\OData\Traits\ResponseTrait;
@@ -38,6 +39,8 @@ class Query implements \JsonSerializable
     use TopTrait;
     /** @use CountTrait */
     use CountTrait;
+    /** @use OrderByTrait<TModelClass> */
+    use OrderByTrait;
     /** @use ResponseTrait */
     use ResponseTrait;
     /** @use AttributesTrait */
@@ -56,6 +59,7 @@ class Query implements \JsonSerializable
      * @param bool $skip
      * @param bool $top
      * @param bool $count
+     * @param bool $orderby
      * @param Request|null $request
      * @throws \ReflectionException
      */
@@ -68,6 +72,7 @@ class Query implements \JsonSerializable
         protected bool            $skip = true,
         protected bool            $top = true,
         protected bool            $count = true,
+        protected bool            $orderby = true,
         protected ?Request        $request = null
     )
     {
@@ -89,6 +94,8 @@ class Query implements \JsonSerializable
         if ($top) $this->addTop();
 
         if ($count) $this->addCount();
+
+        if ($orderby) $this->addOrderBy();
     }
 
     /**
