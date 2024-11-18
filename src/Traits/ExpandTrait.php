@@ -208,6 +208,11 @@ trait ExpandTrait
         }
     }
 
+    /**
+     * @param Builder $relationshipBuilder
+     * @param string $value
+     * @return void
+     */
     private function handleOrderBy(Builder $relationshipBuilder, string $value): void
     {
         $this->appendOrderBy($value, $relationshipBuilder);
