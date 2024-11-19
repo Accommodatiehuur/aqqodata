@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 
 uses(Testcase::class)->in(__DIR__);
 
-function createQueryFromParams(string $select = "", string $filter = "", string $expand = "", string $search = "", ?int $skip = null, ?int $top = null, string $orderby = "", string $model = null): Query
+function createQueryFromParams(string $select = "", string $filter = "", string $expand = "", string $search = "", ?int $skip = null, ?int $top = null, ?bool $count = null, string $orderby = "", string $model = null): Query
 {
     $model ??= TestModel::class;
 
@@ -21,6 +21,7 @@ function createQueryFromParams(string $select = "", string $filter = "", string 
         '$expand' => $expand,
         '$skip' => $skip,
         '$top' => $top,
+        '$count' => $count,
         '$orderby' => $orderby,
     ]);
 
