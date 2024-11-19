@@ -27,6 +27,8 @@ composer require aqqo/odata
 
 ### Testing
 
+Make sure that you have installed sqllite. `sudo apt install php8.2-sqlite3`
+
 ```bash
 composer test
 ```
