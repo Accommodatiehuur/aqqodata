@@ -137,10 +137,10 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @return Collection<string, array<string,mixed>>
+     * @return \Illuminate\Support\Collection<int, array<string,mixed>>
      * @throws QueryException
      */
-    public function get(): Collection
+    public function get(): \Illuminate\Support\Collection
     {
         try {
             return $this->resolveCollection($this->subject->get());
@@ -158,19 +158,14 @@ class Query implements \JsonSerializable
     }
 
     /**
-     * @param Collection<int, TModelClass|array> $collection
-     * @return Collection<string, array<string,mixed>>
+     * @param Collection<int, TModelClass> $collection
+     * @return \Illuminate\Support\Collection<int, array<string,mixed>>
      */
-    private function resolveCollection(Collection $collection): Collection
+    private function resolveCollection(Collection $collection): \Illuminate\Support\Collection
     {
-        $collection->transform(function ($item) {
-            if (is_array($item)) {
-                return $item;
-            } else {
-                return $this->resolveModel($item);
-            }
+        return $collection->map(function ($item) {
+            return $this->resolveModel($item);
         });
-        return $collection;
     }
 
     /**
