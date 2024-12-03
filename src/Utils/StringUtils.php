@@ -21,7 +21,10 @@ class StringUtils
     {
         // Early return if there are no parentheses or logical operators
         if (!Str::contains($expr, ['(', ')', ' and ', ' or '])) {
-            return [trim($expr)];
+            // If commas are present, split by commas; otherwise, return the trimmed expression
+            return Str::contains($expr, ',')
+                ? array_map('trim', explode(',', $expr))
+                : [trim($expr)];
         }
 
         $result = [];
