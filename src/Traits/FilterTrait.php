@@ -210,7 +210,7 @@ trait FilterTrait
      */
     private function isValidFilter(string $column, string $operator, string $value, Builder $builder): string|bool
     {
-        if (empty($column) || empty($operator) || empty($value)) {
+        if (empty($column) || empty($operator) || ($value != 0 && empty($value))) {
             return false;
         }
 
@@ -281,7 +281,7 @@ trait FilterTrait
             } elseif (!empty($match[3])) {
                 // String literals without quotes
                 return $match[3];
-            } elseif (!empty($match[4])) {
+            } elseif (isset($match[4]) && is_numeric($match[4])) {
                 // Numeric values
                 return $match[4];
             } elseif (!empty($match[6])) {
