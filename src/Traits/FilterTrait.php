@@ -303,6 +303,13 @@ trait FilterTrait
             $operator = OperatorUtils::mapOperator($tokens[0], $inverseOperator);
             $value = OperatorUtils::getValueBasedOnOperator($tokens[0], $tokens[4]);
         } else if (isset($tokens[1]) && ($tokens[1] == 'any' || $tokens[1] == 'all')) {
+            // Fixes for contains, startswith, endswith etc.
+            if (isset($tokens[5]) && !isset($tokens[6])) {
+                $tokens[6] = $tokens[5];
+                $tokens[5] = $tokens[7];
+                $tokens[7] = $tokens[9];
+            }
+
             if (!isset($tokens[6])) {
                 throw new \Exception('Invalid syntax');
             }
