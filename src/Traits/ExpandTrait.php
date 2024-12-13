@@ -43,7 +43,6 @@ trait ExpandTrait
                 $expandExpressions2 = StringUtils::splitODataExpression((string) $expand);
 
                 foreach ($expandExpressions2 as $expand2) {
-                    Log::debug("Expand 2: " . $expand2);
                     $expand2 = trim($expand2);
 
                     if (Str::contains($expand2, '(')) {
