@@ -6,6 +6,7 @@ use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use ReflectionClass;
 use ReflectionException;
@@ -36,6 +37,29 @@ trait ExpandTrait
         foreach ($expandExpressions as $expand) {
             $expand = trim($expand);
 
+            if (Str::contains($expand, ',')) {
+                // This condition should ideally not be met if splitODataExpression is correctly implemented
+                // However, keep it for safety or nested scenarios
+                $expandExpressions2 = StringUtils::splitODataExpression((string) $expand);
+
+                foreach ($expandExpressions2 as $expand2) {
+                    Log::debug("Expand 2: " . $expand2);
+                    $expand2 = trim($expand2);
+
+                    if (Str::contains($expand2, '(')) {
+                        [$relation, $details] = $this->parseExpandWithDetails($expand2);
+                        if ($relation && $details) {
+                            /** @var Builder<TModelClass> $parentBuilder */
+                            $parentBuilder = $this->subject;
+                            $this->handleExpandDetails($parentBuilder, $details, $relation);
+                        }
+                    } else {
+                        $this->applySimpleExpand($expand2);
+                    }
+                }
+            }
+
+            // Process the expand expression
             if (Str::contains($expand, '(')) {
                 [$relation, $details] = $this->parseExpandWithDetails($expand);
                 if ($relation && $details) {

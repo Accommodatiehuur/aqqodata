@@ -17,63 +17,47 @@ class StringUtils
      * @param string $expr The OData expression to split.
      * @return array<string> The split components of the expression.
      */
-    public static function splitODataExpression(string $expr): array
+    public static function splitODataExpression(string $expression): array
     {
-        // Early return if there are no parentheses or logical operators
-        if (!Str::contains($expr, ['(', ')', ' and ', ' or '])) {
-            // If commas are present, split by commas; otherwise, return the trimmed expression
-            return Str::contains($expr, ',')
-                ? array_map('trim', explode(',', $expr))
-                : [trim($expr)];
-        }
-
-        $result = [];
+        $parts = [];
         $current = '';
-        $depth = 0;
-        $length = strlen($expr);
-        $i = 0;
+        $parenthesesLevel = 0;
 
-        while ($i < $length) {
-            $char = $expr[$i];
+        $length = strlen($expression);
+        for ($i = 0; $i < $length; $i++) {
+            $char = $expression[$i];
 
-            // Handle opening parenthesis
             if ($char === '(') {
-                $depth++;
-            }
-            // Handle closing parenthesis
-            elseif ($char === ')') {
-                $depth--;
-            }
-
-            // Check for logical operators at depth 0
-            if ($depth === 0) {
-                // Check for ' and ' (length 5) and ' or ' (length 4)
-                if (substr($expr, $i, 5) === ' and ') {
-                    $result[] = trim($current);
-                    $result[] = 'and';
-                    $current = '';
-                    $i += 5;
-                    continue;
-                } elseif (substr($expr, $i, 4) === ' or ') {
-                    $result[] = trim($current);
-                    $result[] = 'or';
-                    $current = '';
-                    $i += 4;
-                    continue;
+                $parenthesesLevel++;
+            } elseif ($char === ')') {
+                if ($parenthesesLevel > 0) {
+                    $parenthesesLevel--;
+                } else {
+                    // Handle unexpected closing parenthesis
+                    throw new \InvalidArgumentException("Unbalanced parentheses in expression.");
                 }
             }
 
-            // Accumulate the current character
-            $current .= $char;
-            $i++;
+            if ($char === ',' && $parenthesesLevel === 0) {
+                // Top-level comma; split here
+                $parts[] = $current;
+                $current = '';
+            } else {
+                $current .= $char;
+            }
         }
 
-        // Add any remaining segment
-        if (($current = trim($current)) !== '') {
-            $result[] = $current;
+        // Add the last part
+        if (trim($current) !== '') {
+            $parts[] = $current;
         }
 
-        return $result;
+        // Optional: Validate balanced parentheses
+        if ($parenthesesLevel !== 0) {
+            throw new \InvalidArgumentException("Unbalanced parentheses in expression.");
+        }
+
+        return $parts;
     }
 
     /**
