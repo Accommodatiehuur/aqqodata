@@ -2,6 +2,8 @@
 
 namespace Aqqo\OData\Utils;
 
+use Illuminate\Support\Str;
+
 /**
  * Class StringUtils
  *
@@ -13,9 +15,10 @@ class StringUtils
      * Split an OData expression by commas, respecting nested parentheses.
      *
      * @param string $expression
+     * @param string $separator
      * @return array
      */
-    public static function splitODataExpression(string $expression): array
+    public static function splitODataExpression(string $expression, string $separator = ','): array
     {
         $results = [];
         $current = '';
@@ -33,7 +36,7 @@ class StringUtils
                 }
             }
 
-            if ($char === ',' && $depth === 0) {
+            if ($char === $separator && $depth === 0) {
                 $results[] = $current;
                 $current = '';
             } else {
@@ -57,10 +60,10 @@ class StringUtils
      * 3. $filter
      *
      * @param string $details The details string to split and sort.
-     * @param string $separator The separator to use for splitting (comma or semicolon).
+     * @param string $separator
      * @return array<string> The sorted detail components.
      */
-    public static function getSortedDetails(string $details, string $separator = ','): array
+    public static function getSortedDetails(string $details, string $separator = ';'): array
     {
         // Initialize variables for splitting
         $parts = [];
@@ -103,7 +106,7 @@ class StringUtils
         // Assign priorities based on the order array
         $priorityMap = [];
         foreach ($order as $index => $key) {
-            $priorityMap[$key] = $index + 1; // Start priorities at 1
+            $priorityMap[strtolower($key)] = $index + 1; // Start priorities at 1
         }
         $defaultPriority = count($order) + 1;
 
@@ -114,7 +117,7 @@ class StringUtils
             $found = false;
             foreach ($priorityMap as $key => $priority) {
                 // Use a case-insensitive check
-                if (stripos($part, $key) === 0) { // Case-insensitive starts with
+                if (stripos($part, $key . '=') === 0) { // Ensures it starts with key=
                     $grouped[$priority][] = $part;
                     $found = true;
                     break;
@@ -139,5 +142,4 @@ class StringUtils
 
         return $sorted;
     }
-
 }

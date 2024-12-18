@@ -58,27 +58,25 @@ trait ExpandTrait
             [$relation, $details] = $this->parseExpandWithDetails($expand);
 
             if ($relation && $details) {
-                $fullRelation = $relation;
-
+                // Determine if the relation is expandable
                 $expandable = $this->isPropertyExpandable($relation, $parentRelation);
 
                 if ($expandable) {
                     $this->addSelectForExpand($builder, $relation);
 
-                    $builder->with([$fullRelation => function ($query) use ($details, $relation) {
-                        $this->handleExpandDetails($query, $details, $relation);
+                    $builder->with([$expandable => function ($query) use ($details, $relation, $expandable) {
+                        $this->handleExpandDetails($query, $details, $expandable);
                     }]);
                 }
             }
         } else {
-            $fullRelation = $expand;
-
+            // Simple relation without nested expands
             $expandable = $this->isPropertyExpandable($expand, $parentRelation);
 
             if ($expandable) {
                 $this->addSelectForExpand($builder, $expand);
 
-                $builder->with([$fullRelation => function ($query) {
+                $builder->with([$expandable => function ($query) {
                     $this->resolveToDefaultSelects($query);
                 }]);
             }
@@ -88,9 +86,9 @@ trait ExpandTrait
     /**
      * Handle expand details such as $filter, $select, and nested $expand.
      *
-     * @param Builder $builder
-     * @param string  $details
-     * @param string  $relation
+     * @param Builder|Relation $builder
+     * @param string $details
+     * @param string $relation
      *
      * @return void
      * @throws ReflectionException
@@ -102,28 +100,38 @@ trait ExpandTrait
             $builder = $builder->getQuery();
         }
 
-        $parsedDetails = StringUtils::getSortedDetails($details);
+        // First, split the details by semicolons to separate different options
+        $parsedOptions = StringUtils::getSortedDetails($details, ';');
 
-        foreach ($parsedDetails as $detail) {
-            // Check if the detail starts with a known key
-            if (Str::startsWith(strtolower($detail), '$select=')) {
-                $value = substr($detail, strlen('$select='));
+        foreach ($parsedOptions as $option) {
+            // Check if the option starts with a known key
+            if (Str::startsWith(strtolower($option), '$select=')) {
+                $value = substr($option, strlen('$select='));
                 $this->handleSelect($builder, $value, $relation);
-            } elseif (Str::startsWith(strtolower($detail), '$filter=')) {
-                $value = substr($detail, strlen('$filter='));
+            } elseif (Str::startsWith(strtolower($option), '$filter=')) {
+                $value = substr($option, strlen('$filter='));
                 $this->handleFilter($builder, $value);
-            } elseif (Str::startsWith(strtolower($detail), '$expand=')) {
-                $value = substr($detail, strlen('$expand='));
-                $this->processExpandExpression($value, $builder, $relation);
+            } elseif (Str::startsWith(strtolower($option), '$expand=')) {
+                $value = substr($option, strlen('$expand='));
+
+                // Split the $expand value by commas, respecting nested parentheses
+                $expandExpressions = StringUtils::splitODataExpression($value, ',');
+
+                foreach ($expandExpressions as $expr) {
+                    $expr = trim($expr);
+                    if (!empty($expr)) {
+                        $this->processExpandExpression($expr, $builder, $relation);
+                    }
+                }
             } else {
-                // Assume it's an implied $expand
-                $this->processExpandExpression($detail, $builder, $relation);
+                // Assume it's an implied $expand without a prefix
+                $this->processExpandExpression($option, $builder, $relation);
             }
         }
 
         // If no $select is specified, apply default selects
-        if (!collect($parsedDetails)->contains(function($detail) {
-            return Str::startsWith(strtolower($detail), '$select=');
+        if (!collect($parsedOptions)->contains(function($option) {
+            return Str::startsWith(strtolower($option), '$select=');
         })) {
             $this->resolveToDefaultSelects($builder);
         }
@@ -144,6 +152,7 @@ trait ExpandTrait
 
         return [null, null];
     }
+
 
     /**
      * Parse a detail string into key and value.
