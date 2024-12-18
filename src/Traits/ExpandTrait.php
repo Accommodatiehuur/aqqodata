@@ -5,11 +5,8 @@ namespace Aqqo\OData\Traits;
 use Aqqo\OData\Utils\StringUtils;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use ReflectionClass;
 use ReflectionException;
 
 /**

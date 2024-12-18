@@ -2,8 +2,6 @@
 
 namespace Aqqo\OData\Utils;
 
-use Illuminate\Support\Str;
-
 /**
  * Class StringUtils
  *
