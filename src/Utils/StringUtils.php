@@ -2,8 +2,6 @@
 
 namespace Aqqo\OData\Utils;
 
-use Illuminate\Support\Str;
-
 /**
  * Class StringUtils
  *
@@ -12,52 +10,42 @@ use Illuminate\Support\Str;
 class StringUtils
 {
     /**
-     * Splits an OData expression into its constituent parts, respecting nested parentheses.
+     * Split an OData expression by commas, respecting nested parentheses.
      *
-     * @param string $expr The OData expression to split.
-     * @return array<string> The split components of the expression.
+     * @param string $expression
+     * @return array
      */
     public static function splitODataExpression(string $expression): array
     {
-        $parts = [];
+        $results = [];
         $current = '';
-        $parenthesesLevel = 0;
+        $depth = 0;
 
         $length = strlen($expression);
         for ($i = 0; $i < $length; $i++) {
             $char = $expression[$i];
 
             if ($char === '(') {
-                $parenthesesLevel++;
+                $depth++;
             } elseif ($char === ')') {
-                if ($parenthesesLevel > 0) {
-                    $parenthesesLevel--;
-                } else {
-                    // Handle unexpected closing parenthesis
-                    throw new \InvalidArgumentException("Unbalanced parentheses in expression.");
+                if ($depth > 0) {
+                    $depth--;
                 }
             }
 
-            if ($char === ',' && $parenthesesLevel === 0) {
-                // Top-level comma; split here
-                $parts[] = $current;
+            if ($char === ',' && $depth === 0) {
+                $results[] = $current;
                 $current = '';
             } else {
                 $current .= $char;
             }
         }
 
-        // Add the last part
         if (trim($current) !== '') {
-            $parts[] = $current;
+            $results[] = $current;
         }
 
-        // Optional: Validate balanced parentheses
-        if ($parenthesesLevel !== 0) {
-            throw new \InvalidArgumentException("Unbalanced parentheses in expression.");
-        }
-
-        return $parts;
+        return $results;
     }
 
     /**
@@ -69,9 +57,10 @@ class StringUtils
      * 3. $filter
      *
      * @param string $details The details string to split and sort.
+     * @param string $separator The separator to use for splitting (comma or semicolon).
      * @return array<string> The sorted detail components.
      */
-    public static function getSortedDetails(string $details): array
+    public static function getSortedDetails(string $details, string $separator = ','): array
     {
         // Initialize variables for splitting
         $parts = [];
@@ -79,7 +68,7 @@ class StringUtils
         $parentheses = 0;
         $length = strlen($details);
 
-        // Iterate over each character to split by semicolons not within parentheses
+        // Iterate over each character to split by the specified separator not within parentheses
         for ($i = 0; $i < $length; $i++) {
             $char = $details[$i];
 
@@ -91,7 +80,7 @@ class StringUtils
                 }
             }
 
-            if ($char === ';' && $parentheses === 0) {
+            if ($char === $separator && $parentheses === 0) {
                 $parts[] = trim($current);
                 $current = '';
             } else {
@@ -124,7 +113,8 @@ class StringUtils
         foreach ($parts as $part) {
             $found = false;
             foreach ($priorityMap as $key => $priority) {
-                if (strpos($part, $key) === 0) { // More efficient than Str::startsWith
+                // Use a case-insensitive check
+                if (stripos($part, $key) === 0) { // Case-insensitive starts with
                     $grouped[$priority][] = $part;
                     $found = true;
                     break;
